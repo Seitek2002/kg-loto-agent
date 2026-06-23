@@ -1,65 +1,66 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { AuthUser, UserRole } from '@/shared/types';
-import { MOCK_AGENTS, ADMIN_CREDENTIALS } from '@/shared/lib/mockData';
+import type { AuthUser } from '@/shared/types';
+import { authApi } from '@/shared/api/auth';
+import { ApiError } from '@/shared/api/client';
 
 interface AuthState {
   user: AuthUser | null;
+  initializing: boolean;
   error: string | null;
-  login: (login: string, password: string) => boolean;
-  logout: () => void;
+
+  /** Called once on app start to restore session from httpOnly cookie */
+  initAuth: () => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      user: null,
-      error: null,
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  initializing: true,
+  error: null,
 
-      login: (login, password) => {
-        if (
-          login === ADMIN_CREDENTIALS.login &&
-          password === ADMIN_CREDENTIALS.password
-        ) {
-          set({
-            user: {
-              id: 'admin',
-              role: 'admin' as UserRole,
-              name: 'Администратор',
-              login: 'admin',
-            },
-            error: null,
-          });
-          return true;
-        }
+  initAuth: async () => {
+    try {
+      const user = await authApi.me();
+      set({ user, initializing: false });
+    } catch {
+      set({ user: null, initializing: false });
+    }
+  },
 
-        const agent = MOCK_AGENTS.find(
-          (a) => a.login === login && a.password === password
-        );
+  login: async (email, password) => {
+    set({ error: null });
+    try {
+      const { user } = await authApi.login(email, password);
+      set({ user });
+      return true;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        // standardized error format: { type, errors: [{ code, detail }] }
+        const payload = err.payload as {
+          errors?: Array<{ detail: string; code: string }>;
+        } | null;
+        const detail =
+          payload?.errors?.[0]?.detail ??
+          'Неверный email или пароль';
+        set({ error: detail });
+      } else {
+        set({ error: 'Ошибка соединения с сервером' });
+      }
+      return false;
+    }
+  },
 
-        if (agent) {
-          if (agent.status === 'inactive') {
-            set({ error: 'Учётная запись отключена. Обратитесь к администратору.' });
-            return false;
-          }
-          set({
-            user: {
-              id: agent.id,
-              role: 'agent' as UserRole,
-              name: agent.name,
-              login: agent.login,
-            },
-            error: null,
-          });
-          return true;
-        }
+  logout: async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // ignore
+    } finally {
+      set({ user: null });
+    }
+  },
 
-        set({ error: 'Неверный логин или пароль' });
-        return false;
-      },
-
-      logout: () => set({ user: null, error: null }),
-    }),
-    { name: 'kgloto-auth' }
-  )
-);
+  clearError: () => set({ error: null }),
+}));

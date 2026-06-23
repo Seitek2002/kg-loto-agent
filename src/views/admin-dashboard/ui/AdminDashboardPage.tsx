@@ -1,39 +1,39 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useOrdersStore } from '@/features/orders/model/ordersStore';
-import { useTicketsStore } from '@/features/tickets/model/ticketsStore';
+import { useEffect, useMemo } from 'react';
 import { useAdminStore } from '@/features/admin/model/adminStore';
+import { useTicketsStore } from '@/features/tickets/model/ticketsStore';
 import { Card, CardHeader, Badge } from '@/shared/ui';
-import { formatPrice, formatDateTime } from '@/shared/lib/utils';
+import { formatDateTime } from '@/shared/lib/utils';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/config/routes';
-import { MOCK_DRAWS } from '@/shared/lib/mockData';
 
 export function AdminDashboardPage() {
-  const { orders } = useOrdersStore();
-  const { tickets } = useTicketsStore();
-  const agents = useAdminStore((s) => s.agents);
+  const { agents, orders, fetchAgents, fetchOrders } = useAdminStore();
+  const { draws, fetchDraws } = useTicketsStore();
 
-  const stats = useMemo(
-    () => ({
-      totalRevenue: orders.filter((o) => o.status === 'paid').reduce((s, o) => s + o.totalAmount, 0),
-      totalOrders: orders.filter((o) => o.status === 'paid').length,
+  useEffect(() => {
+    fetchAgents();
+    fetchOrders();
+    fetchDraws();
+  }, [fetchAgents, fetchOrders, fetchDraws]);
+
+  const stats = useMemo(() => {
+    const paid = orders.filter((o) => o.status === 'paid');
+    return {
+      totalRevenue: paid.reduce((s, o) => s + parseFloat(o.amount), 0),
+      paidOrders: paid.length,
       pendingOrders: orders.filter((o) => o.status === 'pending').length,
-      activeAgents: agents.filter((a) => a.status === 'active').length,
-      availableTickets: tickets.filter((t) => t.status === 'available').length,
-      soldTickets: tickets.filter((t) => t.status === 'sold').length,
-    }),
-    [orders, tickets, agents]
-  );
+      activeAgents: agents.filter((a) => a.isActive).length,
+      availableTickets: draws.reduce((s, d) => s + d.availableCount, 0),
+      soldTickets: paid.reduce((s, o) => s + o.tickets.length, 0),
+    };
+  }, [orders, agents, draws]);
 
   const recentOrders = useMemo(
     () => [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 8),
     [orders]
   );
-
-  const getAgentName = (agentId: string) =>
-    agents.find((a) => a.id === agentId)?.name ?? 'Неизвестен';
 
   return (
     <div className="flex-1 overflow-y-auto p-5">
@@ -43,15 +43,16 @@ export function AdminDashboardPage() {
           <p className="text-sm text-slate-500">Общая статистика по системе</p>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Выручка</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">{formatPrice(stats.totalRevenue)}</div>
+            <div className="text-2xl font-bold text-emerald-600 mt-1">
+              {stats.totalRevenue.toLocaleString('ru-RU')} сом
+            </div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Оплачено заказов</div>
-            <div className="text-2xl font-bold text-brand-blue mt-1">{stats.totalOrders}</div>
+            <div className="text-2xl font-bold text-brand-blue mt-1">{stats.paidOrders}</div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Ожидают оплаты</div>
@@ -71,7 +72,6 @@ export function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Quick nav */}
         <div className="grid grid-cols-2 gap-4">
           <Link href={ROUTES.ADMIN.AGENTS} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:shadow-sm hover:border-brand-blue/30 transition-all">
             <div className="w-10 h-10 rounded-lg bg-brand-blue/10 flex items-center justify-center">
@@ -91,39 +91,46 @@ export function AdminDashboardPage() {
               </svg>
             </div>
             <div>
-              <p className="font-semibold text-slate-900 text-sm">Пул билетов</p>
-              <p className="text-xs text-slate-500">{tickets.length} билетов</p>
+              <p className="font-semibold text-slate-900 text-sm">Тиражи</p>
+              <p className="text-xs text-slate-500">{draws.length} тиражей</p>
             </div>
           </Link>
         </div>
 
-        {/* Recent orders */}
         <Card>
           <CardHeader title="Последние заказы по всем агентам" />
-          <div className="space-y-2">
-            {recentOrders.map((o) => (
-              <div key={o.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-slate-400">#{o.id}</span>
-                    <Badge variant={
-                      o.status === 'paid' ? 'success' :
-                      o.status === 'pending' ? 'warning' :
-                      o.status === 'cancelled' ? 'danger' : 'neutral'
-                    }>
-                      {o.status === 'paid' ? 'Оплачен' : o.status === 'pending' ? 'Ожидает' : o.status === 'cancelled' ? 'Отменён' : 'Истёк'}
-                    </Badge>
+          {recentOrders.length === 0 ? (
+            <p className="text-sm text-slate-400 py-4 text-center">Нет заказов</p>
+          ) : (
+            <div className="space-y-2">
+              {recentOrders.map((o) => (
+                <div key={o.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-slate-400">#{o.id}</span>
+                      <Badge
+                        variant={
+                          o.status === 'paid' ? 'success' :
+                          o.status === 'pending' ? 'warning' :
+                          o.status === 'cancelled' || o.status === 'failed' ? 'danger' : 'neutral'
+                        }
+                      >
+                        {o.statusDisplay}
+                      </Badge>
+                    </div>
+                    <p className="text-sm font-medium text-slate-800 truncate">{o.clientFullName}</p>
+                    {o.agentName && (
+                      <p className="text-xs text-slate-400">Агент: {o.agentName} · {formatDateTime(o.createdAt)}</p>
+                    )}
                   </div>
-                  <p className="text-sm font-medium text-slate-800 truncate">{o.client.fullName}</p>
-                  <p className="text-xs text-slate-400">{getAgentName(o.agentId)} · {formatDateTime(o.createdAt)}</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-slate-900">{o.amount} сом</p>
+                    <p className="text-xs text-slate-400">{o.tickets.length} билет(а)</p>
+                  </div>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-bold text-slate-900">{formatPrice(o.totalAmount)}</p>
-                  <p className="text-xs text-slate-400">{o.ticketIds.length} билет(а)</p>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>

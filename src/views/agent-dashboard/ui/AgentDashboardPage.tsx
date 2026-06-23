@@ -1,72 +1,66 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/features/auth/model/authStore';
 import { useOrdersStore } from '@/features/orders/model/ordersStore';
 import { useTicketsStore } from '@/features/tickets/model/ticketsStore';
-import { useAdminStore } from '@/features/admin/model/adminStore';
 import { Card, CardHeader, Badge } from '@/shared/ui';
-import { formatPrice, formatDateTime } from '@/shared/lib/utils';
+import { formatDateTime } from '@/shared/lib/utils';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/config/routes';
 
 export function AgentDashboardPage() {
   const { user } = useAuthStore();
-  const { orders } = useOrdersStore();
-  const { tickets } = useTicketsStore();
-  const agents = useAdminStore((s) => s.agents);
+  const { orders, fetchOrders } = useOrdersStore();
+  const { draws, fetchDraws } = useTicketsStore();
 
-  const agent = agents.find((a) => a.id === user?.id);
-  const agentOrders = useMemo(
-    () => orders.filter((o) => o.agentId === user?.id),
-    [orders, user]
-  );
+  useEffect(() => {
+    fetchOrders();
+    fetchDraws();
+  }, [fetchOrders, fetchDraws]);
 
-  const agentTickets = agent
-    ? tickets.filter((t) => agent.ticketPoolIds.includes(t.id))
-    : [];
+  const paid = orders.filter((o) => o.status === 'paid');
+  const revenue = paid.reduce((s, o) => s + parseFloat(o.amount), 0);
+  const pending = orders.filter((o) => o.status === 'pending').length;
+  const totalAvailable = draws.reduce((s, d) => s + d.availableCount, 0);
 
-  const stats = {
-    totalSold: agentOrders.filter((o) => o.status === 'paid').reduce((s, o) => s + o.ticketIds.length, 0),
-    revenue: agentOrders.filter((o) => o.status === 'paid').reduce((s, o) => s + o.totalAmount, 0),
-    pending: agentOrders.filter((o) => o.status === 'pending').length,
-    available: agentTickets.filter((t) => t.status === 'available').length,
-  };
-
-  const recentOrders = agentOrders.slice(0, 5);
+  const recentOrders = [...orders]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   return (
     <div className="flex-1 overflow-y-auto p-5">
       <div className="max-w-4xl mx-auto space-y-5">
-        {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-slate-900">
-            Добро пожаловать, {user?.name?.split(' ')[0]}!
+            Добро пожаловать, {user?.fullName?.split(' ')[1] ?? user?.fullName}!
           </h1>
           <p className="text-sm text-slate-500">Ваша статистика за всё время</p>
         </div>
 
-        {/* Stats grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Продано билетов</div>
-            <div className="text-3xl font-bold text-brand-blue mt-1">{stats.totalSold}</div>
+            <div className="text-3xl font-bold text-brand-blue mt-1">
+              {paid.reduce((s, o) => s + o.tickets.length, 0)}
+            </div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Выручка</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">{formatPrice(stats.revenue)}</div>
+            <div className="text-2xl font-bold text-emerald-600 mt-1">
+              {revenue.toLocaleString('ru-RU')} сом
+            </div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Ожидают оплаты</div>
-            <div className="text-3xl font-bold text-amber-600 mt-1">{stats.pending}</div>
+            <div className="text-3xl font-bold text-amber-600 mt-1">{pending}</div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Доступно билетов</div>
-            <div className="text-3xl font-bold text-slate-700 mt-1">{stats.available}</div>
+            <div className="text-3xl font-bold text-slate-700 mt-1">{totalAvailable}</div>
           </div>
         </div>
 
-        {/* Quick actions */}
         <div className="grid grid-cols-2 gap-4">
           <Link
             href={ROUTES.AGENT.TICKETS}
@@ -88,7 +82,6 @@ export function AgentDashboardPage() {
           </Link>
         </div>
 
-        {/* Recent orders */}
         <Card>
           <CardHeader
             title="Последние заказы"
@@ -105,17 +98,19 @@ export function AgentDashboardPage() {
               {recentOrders.map((o) => (
                 <div key={o.id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
                   <div>
-                    <p className="text-sm font-medium text-slate-800">{o.client.fullName}</p>
+                    <p className="text-sm font-medium text-slate-800">{o.clientFullName}</p>
                     <p className="text-xs text-slate-500">{formatDateTime(o.createdAt)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-slate-900">{formatPrice(o.totalAmount)}</p>
-                    <Badge variant={
-                      o.status === 'paid' ? 'success' :
-                      o.status === 'pending' ? 'warning' :
-                      o.status === 'cancelled' ? 'danger' : 'neutral'
-                    }>
-                      {o.status === 'paid' ? 'Оплачен' : o.status === 'pending' ? 'Ожидает' : o.status === 'cancelled' ? 'Отменён' : 'Истёк'}
+                  <div className="text-right flex flex-col items-end gap-1">
+                    <p className="text-sm font-semibold text-slate-900">{o.amount} сом</p>
+                    <Badge
+                      variant={
+                        o.status === 'paid' ? 'success' :
+                        o.status === 'pending' ? 'warning' :
+                        o.status === 'failed' || o.status === 'cancelled' ? 'danger' : 'neutral'
+                      }
+                    >
+                      {o.statusDisplay}
                     </Badge>
                   </div>
                 </div>

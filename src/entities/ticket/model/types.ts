@@ -1,1 +1,1 @@
-export type { Ticket, Draw, TicketStatus } from '@/shared/types';
+export type { Ticket, Draw } from '@/shared/types';

@@ -1,105 +1,75 @@
 import { create } from 'zustand';
-import type { Ticket } from '@/shared/types';
-import { MOCK_TICKETS } from '@/shared/lib/mockData';
-import { RESERVATION_DURATION_MS } from '@/shared/config/constants';
+import type { Ticket, Draw } from '@/shared/types';
+import { agentApi } from '@/shared/api/agent';
 
 interface TicketsState {
   tickets: Ticket[];
+  draws: Draw[];
   selectedIds: string[];
-  filterDrawId: string | null;
-  filterStatus: Ticket['status'] | 'all';
+  filterDrawCode: string | null;
+  loading: boolean;
+  error: string | null;
 
-  toggleSelect: (id: string) => void;
+  fetchDraws: () => Promise<void>;
+  fetchTickets: (drawCode?: string) => Promise<void>;
+  toggleSelect: (shortId: string) => void;
   clearSelection: () => void;
-  setFilterDraw: (drawId: string | null) => void;
-  setFilterStatus: (status: Ticket['status'] | 'all') => void;
-  reserveTickets: (ids: string[], agentId: string) => void;
-  releaseTickets: (ids: string[]) => void;
-  markTicketsSold: (ids: string[], orderId: string) => void;
-  getTicketsByIds: (ids: string[]) => Ticket[];
-  getAvailableForAgent: (agentPoolIds: string[]) => Ticket[];
+  setFilterDraw: (drawCode: string | null) => void;
+  /** Remove tickets from local list after an order is created */
+  removeTickets: (shortIds: string[]) => void;
+  getSelectedTickets: () => Ticket[];
 }
 
 export const useTicketsStore = create<TicketsState>((set, get) => ({
-  tickets: MOCK_TICKETS,
+  tickets: [],
+  draws: [],
   selectedIds: [],
-  filterDrawId: null,
-  filterStatus: 'all',
+  filterDrawCode: null,
+  loading: false,
+  error: null,
 
-  toggleSelect: (id) =>
+  fetchDraws: async () => {
+    set({ loading: true, error: null });
+    try {
+      const draws = await agentApi.draws();
+      set({ draws, loading: false });
+    } catch {
+      set({ error: 'Не удалось загрузить тиражи', loading: false });
+    }
+  },
+
+  fetchTickets: async (drawCode) => {
+    set({ loading: true, error: null, tickets: [], selectedIds: [] });
+    try {
+      const tickets = await agentApi.tickets(drawCode);
+      set({ tickets, loading: false });
+    } catch {
+      set({ error: 'Не удалось загрузить билеты', loading: false });
+    }
+  },
+
+  toggleSelect: (shortId) =>
     set((s) => ({
-      selectedIds: s.selectedIds.includes(id)
-        ? s.selectedIds.filter((x) => x !== id)
-        : [...s.selectedIds, id],
+      selectedIds: s.selectedIds.includes(shortId)
+        ? s.selectedIds.filter((x) => x !== shortId)
+        : [...s.selectedIds, shortId],
     })),
 
   clearSelection: () => set({ selectedIds: [] }),
 
-  setFilterDraw: (drawId) => set({ filterDrawId: drawId }),
+  setFilterDraw: (drawCode) => {
+    set({ filterDrawCode: drawCode, selectedIds: [] });
+    get().fetchTickets(drawCode ?? undefined);
+  },
 
-  setFilterStatus: (status) => set({ filterStatus: status }),
-
-  reserveTickets: (ids, agentId) =>
+  removeTickets: (shortIds) =>
     set((s) => ({
-      tickets: s.tickets.map((t) =>
-        ids.includes(t.id)
-          ? {
-              ...t,
-              status: 'reserved',
-              reservedBy: agentId,
-              reservedAt: new Date().toISOString(),
-            }
-          : t
-      ),
+      tickets: s.tickets.filter((t) => !shortIds.includes(t.shortId)),
+      selectedIds: s.selectedIds.filter((id) => !shortIds.includes(id)),
     })),
 
-  releaseTickets: (ids) =>
-    set((s) => ({
-      tickets: s.tickets.map((t) =>
-        ids.includes(t.id)
-          ? {
-              ...t,
-              status: 'available',
-              reservedBy: undefined,
-              reservedAt: undefined,
-            }
-          : t
-      ),
-    })),
-
-  markTicketsSold: (ids, orderId) =>
-    set((s) => ({
-      tickets: s.tickets.map((t) =>
-        ids.includes(t.id)
-          ? {
-              ...t,
-              status: 'sold',
-              reservedBy: undefined,
-              reservedAt: undefined,
-              orderId,
-            }
-          : t
-      ),
-    })),
-
-  getTicketsByIds: (ids) => get().tickets.filter((t) => ids.includes(t.id)),
-
-  getAvailableForAgent: (agentPoolIds) =>
-    get().tickets.filter((t) => agentPoolIds.includes(t.id)),
+  getSelectedTickets: () => {
+    const { tickets, selectedIds } = get();
+    return tickets.filter((t) => selectedIds.includes(t.shortId));
+  },
 }));
-
-export function checkAndReleaseExpiredReservations(store: TicketsState) {
-  const now = Date.now();
-  const expired = store.tickets
-    .filter(
-      (t) =>
-        t.status === 'reserved' &&
-        t.reservedAt &&
-        now - new Date(t.reservedAt).getTime() > RESERVATION_DURATION_MS
-    )
-    .map((t) => t.id);
-
-  if (expired.length > 0) {
-    store.releaseTickets(expired);
-  }
-}

@@ -1,69 +1,48 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useAuthStore } from '@/features/auth/model/authStore';
+import { useState, useEffect } from 'react';
 import { useOrdersStore } from '@/features/orders/model/ordersStore';
-import { useTicketsStore } from '@/features/tickets/model/ticketsStore';
-import { OrderCard } from '@/entities/order/ui/OrderCard';
-import { Modal } from '@/shared/ui';
-import { PaymentLinkPanel } from '@/features/orders/ui/PaymentLinkPanel';
+import { Badge } from '@/shared/ui';
+import { formatDateTime } from '@/shared/lib/utils';
 import type { Order } from '@/shared/types';
-import { formatPrice } from '@/shared/lib/utils';
 
 const STATUS_FILTERS = [
-  { value: 'all', label: 'Все' },
-  { value: 'pending', label: 'Ожидают оплаты' },
+  { value: '', label: 'Все' },
+  { value: 'pending', label: 'Ожидают' },
   { value: 'paid', label: 'Оплачены' },
   { value: 'expired', label: 'Истекшие' },
   { value: 'cancelled', label: 'Отменённые' },
+  { value: 'failed', label: 'Ошибка' },
 ] as const;
 
+const STATUS_BADGE: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'neutral' }> = {
+  paid: { label: 'Оплачен', variant: 'success' },
+  pending: { label: 'Ожидает', variant: 'warning' },
+  cancelled: { label: 'Отменён', variant: 'danger' },
+  expired: { label: 'Истёк', variant: 'neutral' },
+  failed: { label: 'Ошибка', variant: 'danger' },
+};
+
 export function AgentOrdersPage() {
-  const { user } = useAuthStore();
-  const { orders, markPaid } = useOrdersStore();
-  const { tickets, markTicketsSold } = useTicketsStore();
-  const [filter, setFilter] = useState<string>('all');
-  const [viewOrder, setViewOrder] = useState<Order | null>(null);
+  const { orders, loading, error, fetchOrders, cancelOrder } = useOrdersStore();
+  const [filter, setFilter] = useState('');
 
-  const agentOrders = useMemo(
-    () => orders.filter((o) => o.agentId === user?.id),
-    [orders, user]
-  );
+  useEffect(() => {
+    fetchOrders(filter || undefined);
+  }, [fetchOrders, filter]);
 
-  const filtered = useMemo(
-    () =>
-      filter === 'all' ? agentOrders : agentOrders.filter((o) => o.status === filter),
-    [agentOrders, filter]
-  );
+  const paid = orders.filter((o) => o.status === 'paid');
+  const revenue = paid.reduce((s, o) => s + parseFloat(o.amount), 0);
+  const pending = orders.filter((o) => o.status === 'pending').length;
 
-  const stats = useMemo(
-    () => ({
-      total: agentOrders.filter((o) => o.status === 'paid').length,
-      revenue: agentOrders
-        .filter((o) => o.status === 'paid')
-        .reduce((s, o) => s + o.totalAmount, 0),
-      pending: agentOrders.filter((o) => o.status === 'pending').length,
-    }),
-    [agentOrders]
-  );
-
-  const getTicketNumbers = (ticketIds: string[]) =>
-    tickets
-      .filter((t) => ticketIds.includes(t.id))
-      .map((t) => `${t.series}-${t.number}`);
-
-  const handleSimulatePaid = () => {
-    if (!viewOrder) return;
-    markPaid(viewOrder.id);
-    markTicketsSold(viewOrder.ticketIds, viewOrder.id);
-    alert(`Оплата подтверждена! Билеты отправлены клиенту ${viewOrder.client.fullName} в WhatsApp.`);
-    setViewOrder(null);
+  const handleCancel = async (order: Order) => {
+    if (!confirm(`Отменить заказ #${order.id}? Билеты вернутся в пул.`)) return;
+    await cancelOrder(order.id);
   };
 
   return (
     <div className="flex-1 overflow-y-auto p-5">
       <div className="max-w-3xl mx-auto space-y-5">
-        {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-slate-900">Мои заказы</h1>
           <p className="text-sm text-slate-500">История оформленных заказов</p>
@@ -72,15 +51,17 @@ export function AgentOrdersPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-600">{stats.total}</div>
+            <div className="text-2xl font-bold text-emerald-600">{paid.length}</div>
             <div className="text-xs text-slate-500 mt-0.5">Оплачено</div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
-            <div className="text-2xl font-bold text-brand-blue">{formatPrice(stats.revenue)}</div>
+            <div className="text-xl font-bold text-brand-blue">
+              {revenue.toLocaleString('ru-RU')} сом
+            </div>
             <div className="text-xs text-slate-500 mt-0.5">Выручка</div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
-            <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
+            <div className="text-2xl font-bold text-amber-600">{pending}</div>
             <div className="text-xs text-slate-500 mt-0.5">Ожидают</div>
           </div>
         </div>
@@ -102,42 +83,71 @@ export function AgentOrdersPage() {
           ))}
         </div>
 
-        {/* Orders list */}
-        {filtered.length === 0 ? (
-          <div className="text-center py-12 text-slate-400">
-            <svg className="w-12 h-12 mx-auto mb-3 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <p className="text-sm">Нет заказов</p>
-          </div>
+        {loading ? (
+          <div className="flex justify-center py-12 text-slate-400 text-sm">Загрузка…</div>
+        ) : error ? (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-12 text-slate-400 text-sm">Нет заказов</div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((order) => (
-              <OrderCard
-                key={order.id}
-                order={order}
-                ticketNumbers={getTicketNumbers(order.ticketIds)}
-                onViewLink={setViewOrder}
-              />
-            ))}
+            {orders.map((order) => {
+              const badge = STATUS_BADGE[order.status] ?? { label: order.statusDisplay, variant: 'neutral' as const };
+              return (
+                <div key={order.id} className="bg-white rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold text-slate-800 text-sm">#{order.id}</span>
+                        <Badge variant={badge.variant}>{badge.label}</Badge>
+                      </div>
+                      <div className="mt-1.5 space-y-0.5 text-sm text-slate-600">
+                        <div><span className="font-medium">Клиент:</span> {order.clientFullName}</div>
+                        <div><span className="font-medium">Телефон:</span> {order.clientPhone}</div>
+                        {order.tickets.length > 0 && (
+                          <div>
+                            <span className="font-medium">Билеты ({order.tickets.length}):</span>{' '}
+                            {order.tickets.map((t) => t.serial.split('-').slice(-2).join('-')).join(', ')}
+                          </div>
+                        )}
+                        <div><span className="font-medium">Создан:</span> {formatDateTime(order.createdAt)}</div>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-lg font-bold text-brand-blue">{order.amount} сом</div>
+                      {order.commissionAmount && (
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          Комиссия: {order.commissionAmount} сом
+                        </div>
+                      )}
+                      {order.status === 'pending' && (
+                        <button
+                          onClick={() => handleCancel(order)}
+                          className="mt-2 text-xs text-red-500 hover:underline"
+                        >
+                          Отменить
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {order.status === 'pending' && (
+                    <div className="mt-3 pt-3 border-t border-slate-100">
+                      <a
+                        href={order.payUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-brand-blue hover:underline break-all"
+                      >
+                        {order.payUrl}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-
-      <Modal
-        open={viewOrder !== null}
-        onClose={() => setViewOrder(null)}
-        title="Ссылка на оплату"
-        size="md"
-      >
-        {viewOrder && (
-          <PaymentLinkPanel
-            order={viewOrder}
-            onSimulatePaid={handleSimulatePaid}
-            onClose={() => setViewOrder(null)}
-          />
-        )}
-      </Modal>
     </div>
   );
 }

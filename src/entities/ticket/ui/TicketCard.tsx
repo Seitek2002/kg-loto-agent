@@ -1,7 +1,7 @@
 'use client';
 
 import { Ticket } from '@/shared/types';
-import { cn, formatPrice } from '@/shared/lib/utils';
+import { cn } from '@/shared/lib/utils';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -9,41 +9,24 @@ interface TicketCardProps {
   onToggle?: (ticket: Ticket) => void;
 }
 
-const statusConfig = {
-  available: {
-    bg: 'bg-white border-slate-200 hover:border-brand-yellow hover:shadow-md cursor-pointer',
-    selectedBg: 'bg-brand-yellow/10 border-brand-yellow shadow-md',
-    badge: 'bg-emerald-100 text-emerald-700',
-    label: 'Доступен',
-  },
-  reserved: {
-    bg: 'bg-amber-50 border-amber-200 cursor-not-allowed opacity-75',
-    selectedBg: 'bg-amber-50 border-amber-200',
-    badge: 'bg-amber-100 text-amber-700',
-    label: 'Бронь',
-  },
-  sold: {
-    bg: 'bg-slate-50 border-slate-200 cursor-not-allowed opacity-50',
-    selectedBg: 'bg-slate-50 border-slate-200',
-    badge: 'bg-slate-100 text-slate-500',
-    label: 'Продан',
-  },
-};
-
 export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
-  const config = statusConfig[ticket.status];
-  const isSelectable = ticket.status === 'available';
+  const isReserved = ticket.reservedUntil !== null;
 
   return (
     <div
-      onClick={() => isSelectable && onToggle?.(ticket)}
+      onClick={() => !isReserved && onToggle?.(ticket)}
       className={cn(
-        'relative rounded-xl border-2 p-3 transition-all duration-150 select-none',
-        selected ? config.selectedBg : config.bg
+        'relative rounded-xl border-2 p-3 transition-all duration-150 select-none text-sm',
+        isReserved
+          ? 'border-amber-200 bg-amber-50/60 opacity-60 cursor-not-allowed'
+          : selected
+          ? 'border-brand-yellow bg-brand-yellow/10 shadow-md cursor-pointer'
+          : 'border-slate-200 bg-white hover:border-brand-yellow/60 hover:shadow-sm cursor-pointer'
       )}
     >
+      {/* Checkmark */}
       {selected && (
-        <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-brand-yellow flex items-center justify-center">
+        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-yellow flex items-center justify-center shrink-0">
           <svg className="w-3 h-3 text-brand-dark" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
@@ -54,16 +37,50 @@ export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
         </div>
       )}
 
-      <div className="text-center">
-        <span className="text-xs text-slate-400 font-medium">{ticket.series}</span>
-        <div className="text-2xl font-bold text-slate-800 leading-tight">
-          {ticket.number}
-        </div>
-        <div className="text-xs font-medium text-slate-500 mt-0.5">{formatPrice(ticket.price)}</div>
+      {/* Draw name */}
+      <div className="text-xs text-slate-400 font-medium truncate pr-6">{ticket.drawName}</div>
+
+      {/* Serial (shortened) */}
+      <div className="text-xs text-slate-500 font-mono truncate mt-0.5">
+        {ticket.serial.split('-').slice(-2).join('-')}
       </div>
 
-      <div className={cn('mt-2 text-center rounded-full px-2 py-0.5 text-xs font-medium', config.badge)}>
-        {config.label}
+      {/* Grids */}
+      {ticket.tirageGrids && ticket.tirageGrids.length > 0 ? (
+        <div className="mt-2 space-y-1.5">
+          {ticket.tirageGrids.map((grid) => (
+            <div key={grid.position}>
+              {ticket.gridCount && ticket.gridCount > 1 && (
+                <span className="text-xs text-slate-400">Сетка {grid.position}:</span>
+              )}
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {grid.numbers.map((n) => (
+                  <span
+                    key={n}
+                    className={cn(
+                      'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold',
+                      selected
+                        ? 'bg-brand-yellow/30 text-brand-dark'
+                        : 'bg-slate-100 text-slate-700'
+                    )}
+                  >
+                    {n}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-2 text-xs text-slate-400">Нет данных о комбинации</div>
+      )}
+
+      {/* Footer */}
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-xs font-semibold text-brand-blue">{ticket.ticketPrice} сом</span>
+        {isReserved && (
+          <span className="text-xs text-amber-600 font-medium">Бронь</span>
+        )}
       </div>
     </div>
   );

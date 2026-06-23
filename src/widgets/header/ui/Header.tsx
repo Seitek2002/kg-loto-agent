@@ -26,9 +26,9 @@ export function Header() {
       {user && (
         <div className="flex items-center gap-3">
           <div className="text-right hidden sm:block">
-            <p className="text-white text-sm font-medium leading-tight">{user.name}</p>
+            <p className="text-white text-sm font-medium leading-tight">{user.fullName}</p>
             <p className="text-blue-300 text-xs capitalize">
-              {user.role === 'admin' ? 'Администратор' : 'Агент'}
+              {user.role === 'superadmin' ? 'Администратор' : 'Агент'}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={handleLogout} className="text-white hover:bg-white/10">

@@ -1,37 +1,51 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useAuthStore } from '@/features/auth/model/authStore';
+import { useState, useCallback, useEffect } from 'react';
 import { useTicketsStore } from '@/features/tickets/model/ticketsStore';
 import { useOrdersStore } from '@/features/orders/model/ordersStore';
-import { useAdminStore } from '@/features/admin/model/adminStore';
 import { TicketGrid } from '@/widgets/ticket-grid/ui/TicketGrid';
-import { Modal } from '@/shared/ui';
-import { Button } from '@/shared/ui';
+import { Modal, Button } from '@/shared/ui';
 import { OrderCreationForm } from '@/features/orders/ui/OrderCreationForm';
 import { PaymentLinkPanel } from '@/features/orders/ui/PaymentLinkPanel';
-import { MOCK_DRAWS } from '@/shared/lib/mockData';
-import type { Client, Order } from '@/shared/types';
-import { formatPrice } from '@/shared/lib/utils';
+import type { Order, Ticket } from '@/shared/types';
 
 type Step = 'grid' | 'form' | 'payment';
 
 export function AgentTicketsPage() {
-  const { user } = useAuthStore();
-  const { tickets, selectedIds, toggleSelect, clearSelection, filterDrawId, filterStatus, setFilterDraw, setFilterStatus, reserveTickets, markTicketsSold, getTicketsByIds } = useTicketsStore();
-  const { createOrder, markPaid, orders } = useOrdersStore();
-  const agents = useAdminStore((s) => s.agents);
+  const {
+    tickets,
+    draws,
+    selectedIds,
+    filterDrawCode,
+    loading,
+    error,
+    fetchDraws,
+    fetchTickets,
+    toggleSelect,
+    clearSelection,
+    setFilterDraw,
+    removeTickets,
+    getSelectedTickets,
+  } = useTicketsStore();
+
+  const { createOrder, createdOrder, createError, clearCreated } = useOrdersStore();
 
   const [step, setStep] = useState<Step>('grid');
   const [formLoading, setFormLoading] = useState(false);
-  const [activeOrder, setActiveOrder] = useState<Order | null>(null);
+  const [orderClient, setOrderClient] = useState<{
+    clientFullName: string;
+    clientPhone: string;
+  } | null>(null);
 
-  const agent = agents.find((a) => a.id === user?.id);
-  const agentTickets = agent
-    ? tickets.filter((t) => agent.ticketPoolIds.includes(t.id))
-    : tickets;
+  useEffect(() => {
+    fetchDraws();
+    fetchTickets();
+  }, [fetchDraws, fetchTickets]);
 
-  const selectedTickets = getTicketsByIds(selectedIds);
+  const selectedTickets = getSelectedTickets();
+  const totalAmount = selectedTickets
+    .reduce((s, t) => s + parseFloat(t.ticketPrice || t.price || '0'), 0)
+    .toFixed(0);
 
   const handleBuy = () => {
     if (selectedIds.length === 0) return;
@@ -39,33 +53,24 @@ export function AgentTicketsPage() {
   };
 
   const handleFormSubmit = useCallback(
-    async (client: Client) => {
-      if (!user) return;
+    async (data: { clientFullName: string; clientPhone: string; clientBirthYear: number }) => {
       setFormLoading(true);
-      await new Promise((r) => setTimeout(r, 500));
-      reserveTickets(selectedIds, user.id);
-      const order = createOrder(user.id, client, selectedIds, 200);
-      setActiveOrder(order);
-      clearSelection();
-      setStep('payment');
+      const result = await createOrder({ ...data, tickets: selectedIds });
       setFormLoading(false);
+      if (result) {
+        setOrderClient({ clientFullName: data.clientFullName, clientPhone: data.clientPhone });
+        removeTickets(selectedIds);
+        clearSelection();
+        setStep('payment');
+      }
     },
-    [user, selectedIds, reserveTickets, createOrder, clearSelection]
+    [selectedIds, createOrder, removeTickets, clearSelection]
   );
 
-  const handleSimulatePaid = useCallback(() => {
-    if (!activeOrder) return;
-    markPaid(activeOrder.id);
-    markTicketsSold(activeOrder.ticketIds, activeOrder.id);
-    setActiveOrder((o) => (o ? { ...o, status: 'paid' } : null));
-    alert(`Оплата подтверждена! Билеты отправлены клиенту ${activeOrder.client.fullName} в WhatsApp.`);
-    setStep('grid');
-    setActiveOrder(null);
-  }, [activeOrder, markPaid, markTicketsSold]);
-
   const handleClosePayment = () => {
+    clearCreated();
+    setOrderClient(null);
     setStep('grid');
-    setActiveOrder(null);
   };
 
   const handleFormCancel = () => {
@@ -73,74 +78,73 @@ export function AgentTicketsPage() {
     setStep('grid');
   };
 
+  const handleToggle = useCallback(
+    (t: Ticket) => toggleSelect(t.shortId),
+    [toggleSelect]
+  );
+
   return (
     <div className="flex-1 overflow-hidden flex flex-col p-5 gap-4">
-      {/* Header bar */}
-      <div className="flex items-center justify-between gap-4 flex-shrink-0">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Билеты</h1>
-          <p className="text-sm text-slate-500">
-            Выберите билеты для продажи клиенту
-          </p>
+          <p className="text-sm text-slate-500">Выберите билеты для продажи клиенту</p>
         </div>
-
         {selectedIds.length > 0 && (
           <div className="flex items-center gap-3">
             <div className="text-sm text-slate-600">
               Выбрано: <span className="font-semibold text-slate-900">{selectedIds.length}</span>
               {' · '}
-              <span className="font-semibold text-brand-blue">{formatPrice(selectedIds.length * 200)}</span>
+              <span className="font-semibold text-brand-blue">{totalAmount} сом</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={clearSelection}>
-              Сбросить
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleBuy}>
-              Купить →
-            </Button>
+            <Button variant="ghost" size="sm" onClick={clearSelection}>Сбросить</Button>
+            <Button variant="primary" size="sm" onClick={handleBuy}>Купить →</Button>
           </div>
         )}
       </div>
 
-      {/* Ticket grid */}
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700 shrink-0">
+          {error}
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto">
         <TicketGrid
-          tickets={agentTickets}
-          draws={MOCK_DRAWS}
+          tickets={tickets}
+          draws={draws}
           selectedIds={selectedIds}
-          onToggle={(t) => toggleSelect(t.id)}
-          filterDrawId={filterDrawId}
-          filterStatus={filterStatus}
+          onToggle={handleToggle}
+          filterDrawCode={filterDrawCode}
           onFilterDraw={setFilterDraw}
-          onFilterStatus={setFilterStatus}
+          loading={loading}
         />
       </div>
 
-      {/* Order creation modal */}
-      <Modal
-        open={step === 'form'}
-        onClose={handleFormCancel}
-        title="Оформление заказа"
-        size="md"
-      >
+      <Modal open={step === 'form'} onClose={handleFormCancel} title="Оформление заказа" size="md">
         <OrderCreationForm
           selectedTickets={selectedTickets}
           onSubmit={handleFormSubmit}
           onCancel={handleFormCancel}
           loading={formLoading}
+          error={createError}
         />
       </Modal>
 
-      {/* Payment link modal */}
       <Modal
-        open={step === 'payment' && activeOrder !== null}
+        open={step === 'payment' && createdOrder !== null}
         onClose={handleClosePayment}
         title="Ссылка на оплату"
         size="md"
       >
-        {activeOrder && (
+        {createdOrder && orderClient && (
           <PaymentLinkPanel
-            order={activeOrder}
-            onSimulatePaid={handleSimulatePaid}
+            createdOrder={createdOrder}
+            clientFullName={orderClient.clientFullName}
+            clientPhone={orderClient.clientPhone}
+            onPaid={(_order: Order) => {}}
+            onExpired={() => {}}
             onClose={handleClosePayment}
           />
         )}

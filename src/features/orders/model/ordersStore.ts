@@ -1,79 +1,85 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Order, Client } from '@/shared/types';
-import { MOCK_ORDERS } from '@/shared/lib/mockData';
-import { RESERVATION_DURATION_MS } from '@/shared/config/constants';
-import { generateOrderId, generatePaymentLink } from '@/shared/lib/utils';
+import type { Order, CreateOrderPayload } from '@/shared/types';
+import { agentApi } from '@/shared/api/agent';
+import { ApiError } from '@/shared/api/client';
+
+interface CreatedOrder {
+  orderId: number;
+  status: string;
+  amount: string;
+  payUrl: string;
+  reservedUntil: string;
+}
 
 interface OrdersState {
   orders: Order[];
-  activeOrderId: string | null;
+  loading: boolean;
+  error: string | null;
+  /** The most recently created order (shown in payment modal) */
+  createdOrder: CreatedOrder | null;
+  createError: string | null;
 
-  createOrder: (agentId: string, client: Client, ticketIds: string[], pricePerTicket: number) => Order;
-  getAgentOrders: (agentId: string) => Order[];
-  setActiveOrder: (id: string | null) => void;
-  markPaid: (orderId: string) => void;
-  cancelOrder: (orderId: string) => void;
-  expireOrder: (orderId: string) => void;
+  fetchOrders: (status?: string) => Promise<void>;
+  createOrder: (payload: CreateOrderPayload) => Promise<CreatedOrder | null>;
+  cancelOrder: (id: number) => Promise<void>;
+  clearCreated: () => void;
 }
 
-export const useOrdersStore = create<OrdersState>()(
-  persist(
-    (set, get) => ({
-      orders: MOCK_ORDERS,
-      activeOrderId: null,
+export const useOrdersStore = create<OrdersState>((set) => ({
+  orders: [],
+  loading: false,
+  error: null,
+  createdOrder: null,
+  createError: null,
 
-      createOrder: (agentId, client, ticketIds, pricePerTicket) => {
-        const id = generateOrderId();
-        const now = new Date().toISOString();
-        const expiresAt = new Date(
-          Date.now() + RESERVATION_DURATION_MS
-        ).toISOString();
+  fetchOrders: async (status) => {
+    set({ loading: true, error: null });
+    try {
+      const orders = await agentApi.orders(status);
+      set({ orders, loading: false });
+    } catch {
+      set({ error: 'Не удалось загрузить заказы', loading: false });
+    }
+  },
 
-        const order: Order = {
-          id,
-          agentId,
-          client,
-          ticketIds,
-          totalAmount: ticketIds.length * pricePerTicket,
-          status: 'pending',
-          paymentLink: generatePaymentLink(id),
-          createdAt: now,
-          expiresAt,
-        };
+  createOrder: async (payload) => {
+    set({ createError: null });
+    try {
+      const created = await agentApi.createOrder(payload);
+      set({ createdOrder: created });
+      return created;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const payload = err.payload as {
+          data?: { tickets?: string[]; detail?: string | Record<string, string[]> };
+        } | null;
+        const data = payload?.data;
+        let msg = 'Не удалось создать заказ';
+        if (Array.isArray(data?.tickets)) {
+          msg = data!.tickets.join('\n');
+        } else if (typeof data?.detail === 'string') {
+          msg = data.detail;
+        }
+        set({ createError: msg });
+      } else {
+        set({ createError: 'Ошибка соединения с сервером' });
+      }
+      return null;
+    }
+  },
 
-        set((s) => ({ orders: [order, ...s.orders], activeOrderId: id }));
-        return order;
-      },
+  cancelOrder: async (id) => {
+    try {
+      await agentApi.cancelOrder(id);
+      set((s) => ({
+        orders: s.orders.map((o) =>
+          o.id === id ? { ...o, status: 'cancelled' as const, statusDisplay: 'Отменён агентом' } : o
+        ),
+      }));
+    } catch {
+      // surface to UI via re-throw if needed
+    }
+  },
 
-      getAgentOrders: (agentId) =>
-        get().orders.filter((o) => o.agentId === agentId),
-
-      setActiveOrder: (id) => set({ activeOrderId: id }),
-
-      markPaid: (orderId) =>
-        set((s) => ({
-          orders: s.orders.map((o) =>
-            o.id === orderId
-              ? { ...o, status: 'paid', paidAt: new Date().toISOString() }
-              : o
-          ),
-        })),
-
-      cancelOrder: (orderId) =>
-        set((s) => ({
-          orders: s.orders.map((o) =>
-            o.id === orderId ? { ...o, status: 'cancelled' } : o
-          ),
-        })),
-
-      expireOrder: (orderId) =>
-        set((s) => ({
-          orders: s.orders.map((o) =>
-            o.id === orderId ? { ...o, status: 'expired' } : o
-          ),
-        })),
-    }),
-    { name: 'kgloto-orders' }
-  )
-);
+  clearCreated: () => set({ createdOrder: null, createError: null }),
+}));

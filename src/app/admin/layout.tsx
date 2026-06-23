@@ -8,18 +8,27 @@ import { Sidebar } from '@/widgets/sidebar/ui/AgentSidebar';
 import { ROUTES } from '@/shared/config/routes';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthStore();
+  const { user, initializing } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
+    if (initializing) return;
     if (!user) {
       router.replace(ROUTES.LOGIN);
-    } else if (user.role !== 'admin') {
+    } else if (user.role !== 'superadmin') {
       router.replace(ROUTES.AGENT.TICKETS);
     }
-  }, [user, router]);
+  }, [user, initializing, router]);
 
-  if (!user || user.role !== 'admin') return null;
+  if (initializing) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user || user.role !== 'superadmin') return null;
 
   return (
     <div className="h-full flex flex-col">

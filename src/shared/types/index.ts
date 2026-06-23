@@ -1,67 +1,120 @@
-export type TicketStatus = 'available' | 'reserved' | 'sold';
+// ── Auth ────────────────────────────────────────────────────────────────────
 
-export interface Ticket {
-  id: string;
-  number: string;
-  series: string;
-  drawId: string;
-  drawName: string;
-  drawDate: string;
-  price: number;
-  status: TicketStatus;
-  reservedBy?: string;
-  reservedAt?: string;
-  orderId?: string;
-}
-
-export interface Draw {
-  id: string;
-  name: string;
-  date: string;
-  jackpot: number;
-  ticketPrice: number;
-  active: boolean;
-}
-
-export type AgentStatus = 'active' | 'inactive';
-
-export interface Agent {
-  id: string;
-  name: string;
-  login: string;
-  password: string;
-  phone: string;
-  whatsapp: string;
-  status: AgentStatus;
-  createdAt: string;
-  ticketPoolIds: string[];
-}
-
-export interface Client {
-  fullName: string;
-  phone: string;
-}
-
-export type OrderStatus = 'pending' | 'paid' | 'cancelled' | 'expired';
-
-export interface Order {
-  id: string;
-  agentId: string;
-  client: Client;
-  ticketIds: string[];
-  totalAmount: number;
-  status: OrderStatus;
-  paymentLink: string;
-  createdAt: string;
-  paidAt?: string;
-  expiresAt: string;
-}
-
-export type UserRole = 'admin' | 'agent';
+export type UserRole = 'agent' | 'superadmin';
 
 export interface AuthUser {
-  id: string;
+  id: number;
+  email: string;
+  fullName: string;
   role: UserRole;
+  phoneNumber?: string;
+  commissionPercent?: string;
+}
+
+// ── Draw ────────────────────────────────────────────────────────────────────
+
+export type DrawStatus = 'active' | 'completed' | 'cancelled';
+
+export interface Draw {
+  id: number;
+  drawCode: string;
+  drawName: string;
+  status: DrawStatus;
+  statusDisplay: string;
+  pricePerTicket: string;
+  prizePool: string;
+  drawAt: string | null;
+  salesDeadlineAt: string | null;
+  availableCount: number;
+}
+
+// ── Ticket ──────────────────────────────────────────────────────────────────
+
+export interface TirageGrid {
+  key: string;
+  numbers: number[];
+  position: number;
+}
+
+export interface TirageVariant {
+  id: number;
+  code: string;
   name: string;
-  login: string;
+  gridCount: number;
+  pricePerTicket: number;
+}
+
+/** Ticket as returned from GET /agent/tickets/ */
+export interface Ticket {
+  id: string;
+  shortId: string;
+  serial: string;
+  drawCode: string;
+  drawName: string;
+  price: string;
+  ticketPrice: string;
+  gridCount: number | null;
+  tirageVariant: TirageVariant | null;
+  tirageGrids: TirageGrid[] | null;
+  reservedUntil: string | null;
+}
+
+/** Ticket as embedded inside an Order */
+export interface OrderTicket {
+  shortId: string;
+  serial: string;
+  drawName: string;
+  ticketPrice: string;
+  gridCount: number | null;
+  tirageGrids: TirageGrid[] | null;
+}
+
+// ── Order ───────────────────────────────────────────────────────────────────
+
+export type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired';
+
+export interface Order {
+  id: number;
+  /** only present in admin orders list */
+  agentId?: number;
+  /** only present in admin orders list */
+  agentName?: string;
+  status: OrderStatus;
+  statusDisplay: string;
+  clientFullName: string;
+  clientPhone: string;
+  clientBirthYear: number;
+  amount: string;
+  commissionAmount?: string;
+  currency?: string;
+  payUrl: string;
+  reservedUntil: string;
+  paidAt: string | null;
+  clientNotifiedAt: string | null;
+  agentNotifiedAt: string | null;
+  createdAt: string;
+  tickets: OrderTicket[];
+  /** only in admin detail */
+  deliveryError?: string;
+}
+
+export interface CreateOrderPayload {
+  clientFullName: string;
+  clientPhone: string;
+  clientBirthYear: number;
+  tickets: string[];
+  note?: string;
+  redirectUrl?: string;
+}
+
+// ── Admin Agent ──────────────────────────────────────────────────────────────
+
+export interface AdminAgent {
+  id: number;
+  email: string;
+  fullName: string;
+  phoneNumber: string;
+  commissionPercent: string;
+  isActive: boolean;
+  dateJoined: string;
 }

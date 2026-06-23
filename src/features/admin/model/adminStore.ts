@@ -1,52 +1,85 @@
 import { create } from 'zustand';
-import type { Agent } from '@/shared/types';
-import { MOCK_AGENTS } from '@/shared/lib/mockData';
-
-interface AgentFormData {
-  name: string;
-  login: string;
-  password: string;
-  phone: string;
-  whatsapp: string;
-}
+import type { AdminAgent, Order } from '@/shared/types';
+import { adminApi } from '@/shared/api/admin';
+import { ApiError } from '@/shared/api/client';
 
 interface AdminState {
-  agents: Agent[];
-  addAgent: (data: AgentFormData) => void;
-  toggleAgentStatus: (agentId: string) => void;
-  assignTickets: (agentId: string, ticketIds: string[]) => void;
+  agents: AdminAgent[];
+  orders: Order[];
+  loadingAgents: boolean;
+  loadingOrders: boolean;
+  error: string | null;
+
+  fetchAgents: () => Promise<void>;
+  createAgent: (data: {
+    email: string;
+    password: string;
+    fullName: string;
+    phoneNumber: string;
+    commissionPercent: string;
+  }) => Promise<boolean>;
+  toggleAgentStatus: (id: number, currentActive: boolean) => Promise<void>;
+  fetchOrders: (params?: { agentId?: number; status?: string }) => Promise<void>;
+  resendWhatsApp: (orderId: number) => Promise<void>;
 }
 
 export const useAdminStore = create<AdminState>((set) => ({
-  agents: MOCK_AGENTS,
+  agents: [],
+  orders: [],
+  loadingAgents: false,
+  loadingOrders: false,
+  error: null,
 
-  addAgent: (data) =>
-    set((s) => ({
-      agents: [
-        ...s.agents,
-        {
-          id: `agent-${Date.now()}`,
-          ...data,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          ticketPoolIds: [],
-        },
-      ],
-    })),
+  fetchAgents: async () => {
+    set({ loadingAgents: true, error: null });
+    try {
+      const agents = await adminApi.agents();
+      set({ agents, loadingAgents: false });
+    } catch {
+      set({ error: 'Не удалось загрузить агентов', loadingAgents: false });
+    }
+  },
 
-  toggleAgentStatus: (agentId) =>
-    set((s) => ({
-      agents: s.agents.map((a) =>
-        a.id === agentId
-          ? { ...a, status: a.status === 'active' ? 'inactive' : 'active' }
-          : a
-      ),
-    })),
+  createAgent: async (data) => {
+    try {
+      const agent = await adminApi.createAgent(data);
+      set((s) => ({ agents: [...s.agents, agent] }));
+      return true;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        const p = err.payload as { data?: { detail?: Record<string, string[]> | string } } | null;
+        const msg =
+          typeof p?.data?.detail === 'string'
+            ? p.data.detail
+            : 'Ошибка создания агента';
+        set({ error: msg });
+      }
+      return false;
+    }
+  },
 
-  assignTickets: (agentId, ticketIds) =>
-    set((s) => ({
-      agents: s.agents.map((a) =>
-        a.id === agentId ? { ...a, ticketPoolIds: ticketIds } : a
-      ),
-    })),
+  toggleAgentStatus: async (id, currentActive) => {
+    try {
+      const updated = await adminApi.patchAgent(id, { isActive: !currentActive });
+      set((s) => ({
+        agents: s.agents.map((a) => (a.id === id ? updated : a)),
+      }));
+    } catch {
+      //
+    }
+  },
+
+  fetchOrders: async (params) => {
+    set({ loadingOrders: true, error: null });
+    try {
+      const orders = await adminApi.orders(params);
+      set({ orders, loadingOrders: false });
+    } catch {
+      set({ error: 'Не удалось загрузить заказы', loadingOrders: false });
+    }
+  },
+
+  resendWhatsApp: async (orderId) => {
+    await adminApi.resendWhatsApp(orderId);
+  },
 }));
