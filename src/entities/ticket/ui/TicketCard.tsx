@@ -77,7 +77,9 @@ export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
 
       {/* Footer */}
       <div className="mt-2 flex items-center justify-between">
-        <span className="text-xs font-semibold text-brand-blue">{ticket.ticketPrice} сом</span>
+        <span className="text-xs font-semibold text-brand-blue">
+          {ticket.tirageVariant ? ticket.tirageVariant.pricePerTicket : ticket.ticketPrice} сом
+        </span>
         {isReserved && (
           <span className="text-xs text-amber-600 font-medium">Бронь</span>
         )}

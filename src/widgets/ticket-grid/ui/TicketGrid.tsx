@@ -22,7 +22,7 @@ export function TicketGrid({
   onFilterDraw,
   loading,
 }: TicketGridProps) {
-  const activeDraw = draws.find((d) => d.drawCode === filterDrawCode);
+  const activeDraw = draws.find((d) => d.code === filterDrawCode);
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -40,16 +40,15 @@ export function TicketGrid({
         </button>
         {draws.map((d) => (
           <button
-            key={d.drawCode}
-            onClick={() => onFilterDraw(d.drawCode)}
+            key={d.code}
+            onClick={() => onFilterDraw(d.code)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium border transition-colors ${
-              filterDrawCode === d.drawCode
+              filterDrawCode === d.code
                 ? 'bg-brand-blue text-white border-brand-blue'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
             }`}
           >
-            {d.drawName}
-            <span className="ml-1.5 opacity-70">({d.availableCount})</span>
+            {d.name}
           </button>
         ))}
       </div>

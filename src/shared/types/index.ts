@@ -13,19 +13,26 @@ export interface AuthUser {
 
 // ── Draw ────────────────────────────────────────────────────────────────────
 
-export type DrawStatus = 'active' | 'completed' | 'cancelled';
+export type DrawStatus = string;
 
 export interface Draw {
   id: number;
-  drawCode: string;
-  drawName: string;
+  code: string;
+  name: string;
+  description?: string;
   status: DrawStatus;
   statusDisplay: string;
   pricePerTicket: string;
   prizePool: string;
-  drawAt: string | null;
+  isMonetary?: boolean;
+  drawNumber?: number | null;
+  salesStartAt: string | null;
   salesDeadlineAt: string | null;
-  availableCount: number;
+  drawAt: string | null;
+  purpose?: string;
+  purposeDisplay?: string;
+  gameType?: { id: number; name: string; code: string };
+  ticketPrices?: { gridCount: number; ticketPrice: number }[];
 }
 
 // ── Ticket ──────────────────────────────────────────────────────────────────

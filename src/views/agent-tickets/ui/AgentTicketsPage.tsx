@@ -35,7 +35,7 @@ export function AgentTicketsPage() {
     clientFullName: string;
     clientPhone: string;
   } | null>(null);
-  const [drawStatus, setDrawStatus] = useState<string>('active');
+  const [drawStatus, setDrawStatus] = useState<string>('printing');
 
   useEffect(() => {
     fetchDraws(drawStatus || undefined);
@@ -44,7 +44,7 @@ export function AgentTicketsPage() {
 
   const selectedTickets = tickets.filter((t) => selectedIds.includes(t.shortId));
   const totalAmount = selectedTickets
-    .reduce((s, t) => s + parseFloat(t.ticketPrice || t.price || '0'), 0)
+    .reduce((s, t) => s + (t.tirageVariant ? t.tirageVariant.pricePerTicket : parseFloat(t.ticketPrice || t.price || '0')), 0)
     .toFixed(0);
 
   const handleBuy = () => {
@@ -84,8 +84,8 @@ export function AgentTicketsPage() {
   );
 
   const DRAW_STATUS_FILTERS = [
-    { value: 'active', label: 'Активные' },
-    { value: 'completed', label: 'Завершённые' },
+    { value: 'printing', label: 'Активные' },
+    { value: 'finished', label: 'Завершённые' },
     { value: '', label: 'Все' },
   ];
 

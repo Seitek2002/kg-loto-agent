@@ -8,7 +8,7 @@ export const agentApi = {
   },
 
   tickets: (drawCode?: string) => {
-    const q = drawCode ? `?drawCode=${encodeURIComponent(drawCode)}` : '';
+    const q = drawCode ? `?draw_code=${encodeURIComponent(drawCode)}` : '';
     return getPagedAll<Ticket>(`/agent/tickets/${q}`);
   },
 
