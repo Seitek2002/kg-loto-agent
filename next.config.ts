@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   reactCompiler: true,
   async rewrites() {
-    const apiUrl = process.env.API_URL ?? 'http://localhost:8000';
+    const apiUrl = process.env.API_URL ?? 'https://kgloto.com';
     return [
       {
         source: '/api/v2/:path*',

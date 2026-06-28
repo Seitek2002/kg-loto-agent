@@ -51,7 +51,7 @@ export function AdminAgentsPage() {
         ) : (
           <Card padding={false}>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-180 text-sm">
                 <thead>
                   <tr className="border-b border-slate-100">
                     {['Агент', 'Email', 'Телефон', 'Комиссия', 'Статус', 'Создан', ''].map((h) => (

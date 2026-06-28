@@ -25,7 +25,6 @@ export function AgentTicketsPage() {
     clearSelection,
     setFilterDraw,
     removeTickets,
-    getSelectedTickets,
   } = useTicketsStore();
 
   const { createOrder, createdOrder, createError, clearCreated } = useOrdersStore();
@@ -42,7 +41,7 @@ export function AgentTicketsPage() {
     fetchTickets();
   }, [fetchDraws, fetchTickets]);
 
-  const selectedTickets = getSelectedTickets();
+  const selectedTickets = tickets.filter((t) => selectedIds.includes(t.shortId));
   const totalAmount = selectedTickets
     .reduce((s, t) => s + parseFloat(t.ticketPrice || t.price || '0'), 0)
     .toFixed(0);
