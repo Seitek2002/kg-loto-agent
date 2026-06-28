@@ -112,8 +112,8 @@ export function AgentTicketsPage() {
           </div>
         </div>
         {selectedIds.length > 0 && (
-          <div className="flex items-center gap-2 bg-brand-blue/5 border border-brand-blue/20 rounded-xl px-3 py-2 sm:bg-transparent sm:border-0 sm:p-0 sm:gap-3">
-            <div className="text-sm text-slate-600 flex-1">
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="text-sm text-slate-600">
               Выбрано: <span className="font-semibold text-slate-900">{selectedIds.length}</span>
               {' · '}
               <span className="font-semibold text-brand-blue">{totalAmount} сом</span>
@@ -141,6 +141,20 @@ export function AgentTicketsPage() {
           loading={loading}
         />
       </div>
+
+      {/* Mobile floating buy button */}
+      {selectedIds.length > 0 && (
+        <div className="sm:hidden fixed bottom-20 left-0 right-0 px-4 z-40">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-slate-500">Выбрано билетов: <span className="font-semibold text-slate-800">{selectedIds.length}</span></div>
+              <div className="text-base font-bold text-brand-blue">{totalAmount} сом</div>
+            </div>
+            <Button variant="ghost" size="sm" onClick={clearSelection}>Сбросить</Button>
+            <Button variant="primary" onClick={handleBuy} className="px-5">Купить →</Button>
+          </div>
+        </div>
+      )}
 
       <Modal open={step === 'form'} onClose={handleFormCancel} title="Оформление заказа" size="md">
         <OrderCreationForm

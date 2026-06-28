@@ -26,6 +26,13 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'success' | 'warnin
 export function AgentOrdersPage() {
   const { orders, loading, error, fetchOrders, cancelOrder } = useOrdersStore();
   const [filter, setFilter] = useState('');
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  const handleCopy = (url: string, id: number) => {
+    navigator.clipboard.writeText(url);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   useEffect(() => {
     fetchOrders(filter || undefined);
@@ -130,16 +137,26 @@ export function AgentOrdersPage() {
                       )}
                     </div>
                   </div>
-                  {order.status === 'pending' && (
-                    <div className="mt-3 pt-3 border-t border-slate-100">
+                  {order.status === 'pending' && order.payUrl && (
+                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-3">
                       <a
                         href={order.payUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-brand-blue hover:underline break-all"
+                        className="text-xs text-brand-blue hover:underline break-all flex-1 min-w-0 truncate"
                       >
                         {order.payUrl}
                       </a>
+                      <button
+                        onClick={() => handleCopy(order.payUrl, order.id)}
+                        className={`shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                          copiedId === order.id
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-brand-blue hover:text-brand-blue'
+                        }`}
+                      >
+                        {copiedId === order.id ? '✓ Скопировано' : 'Скопировать ссылку'}
+                      </button>
                     </div>
                   )}
                 </div>
