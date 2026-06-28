@@ -88,6 +88,7 @@ export interface Order {
   commissionAmount?: string;
   currency?: string;
   payUrl: string;
+  pdfFile?: string | null;
   reservedUntil: string;
   paidAt: string | null;
   clientNotifiedAt: string | null;
@@ -105,6 +106,13 @@ export interface CreateOrderPayload {
   tickets: string[];
   note?: string;
   redirectUrl?: string;
+}
+
+export interface RevenueData {
+  totalRevenue: string;
+  paidOrdersAmount: string;
+  paidOrdersCount: number;
+  currency: string;
 }
 
 // ── Admin Agent ──────────────────────────────────────────────────────────────

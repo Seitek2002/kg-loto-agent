@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/model/authStore';
 import { Header } from '@/widgets/header/ui/Header';
 import { Sidebar } from '@/widgets/sidebar/ui/AgentSidebar';
@@ -10,15 +10,22 @@ import { ROUTES } from '@/shared/config/routes';
 export default function AgentLayout({ children }: { children: React.ReactNode }) {
   const { user, initializing } = useAuthStore();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const isPublic = pathname?.startsWith('/agent/order-status');
 
   useEffect(() => {
+    if (isPublic) return;
     if (initializing) return;
     if (!user) {
       router.replace(ROUTES.LOGIN);
     } else if (user.role !== 'agent') {
       router.replace(ROUTES.ADMIN.DASHBOARD);
     }
-  }, [user, initializing, router]);
+  }, [user, initializing, router, isPublic]);
+
+  // Public buyer-facing pages — no auth, no chrome
+  if (isPublic) return <>{children}</>;
 
   if (initializing) {
     return (

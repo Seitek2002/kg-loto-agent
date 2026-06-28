@@ -1,26 +1,38 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/features/auth/model/authStore';
 import { useOrdersStore } from '@/features/orders/model/ordersStore';
 import { useTicketsStore } from '@/features/tickets/model/ticketsStore';
+import { agentApi } from '@/shared/api/agent';
 import { Card, CardHeader, Badge } from '@/shared/ui';
 import { formatDateTime } from '@/shared/lib/utils';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/config/routes';
+import type { RevenueData } from '@/shared/types';
+
+function currentMonthRange() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+  return { dateFrom: `${y}-${m}-01`, dateTo: `${y}-${m}-${lastDay}` };
+}
 
 export function AgentDashboardPage() {
   const { user } = useAuthStore();
   const { orders, fetchOrders } = useOrdersStore();
   const { draws, fetchDraws } = useTicketsStore();
+  const [revenue, setRevenue] = useState<RevenueData | null>(null);
 
   useEffect(() => {
     fetchOrders();
     fetchDraws();
+    const { dateFrom, dateTo } = currentMonthRange();
+    agentApi.revenue({ dateFrom, dateTo }).then(setRevenue).catch(() => null);
   }, [fetchOrders, fetchDraws]);
 
   const paid = orders.filter((o) => o.status === 'paid');
-  const revenue = paid.reduce((s, o) => s + parseFloat(o.amount), 0);
   const pending = orders.filter((o) => o.status === 'pending').length;
   const totalAvailable = draws.reduce((s, d) => s + d.availableCount, 0);
 
@@ -35,20 +47,23 @@ export function AgentDashboardPage() {
           <h1 className="text-xl font-bold text-slate-900">
             Добро пожаловать, {user?.fullName?.split(' ')[1] ?? user?.fullName}!
           </h1>
-          <p className="text-sm text-slate-500">Ваша статистика за всё время</p>
+          <p className="text-sm text-slate-500">Статистика за текущий месяц</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Продано билетов</div>
-            <div className="text-3xl font-bold text-brand-blue mt-1">
-              {paid.reduce((s, o) => s + o.tickets.length, 0)}
+            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Выручка</div>
+            <div className="text-2xl font-bold text-emerald-600 mt-1">
+              {revenue
+                ? Number(revenue.paidOrdersAmount).toLocaleString('ru-RU')
+                : paid.reduce((s, o) => s + parseFloat(o.amount), 0).toLocaleString('ru-RU')}{' '}
+              сом
             </div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Выручка</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">
-              {revenue.toLocaleString('ru-RU')} сом
+            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Оплачено заказов</div>
+            <div className="text-3xl font-bold text-brand-blue mt-1">
+              {revenue ? revenue.paidOrdersCount : paid.length}
             </div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
@@ -60,6 +75,20 @@ export function AgentDashboardPage() {
             <div className="text-3xl font-bold text-slate-700 mt-1">{totalAvailable}</div>
           </div>
         </div>
+
+        {revenue && (
+          <div className="bg-brand-blue/5 border border-brand-blue/20 rounded-xl p-4 flex items-center justify-between">
+            <div>
+              <div className="text-xs text-brand-blue/70 font-medium uppercase tracking-wide">Комиссия агента (месяц)</div>
+              <div className="text-2xl font-bold text-brand-blue mt-0.5">
+                {(Number(revenue.totalRevenue)).toLocaleString('ru-RU')} {revenue.currency}
+              </div>
+            </div>
+            <svg className="w-10 h-10 text-brand-blue/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <Link

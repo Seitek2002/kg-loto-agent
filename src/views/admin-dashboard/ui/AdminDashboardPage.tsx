@@ -1,21 +1,34 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAdminStore } from '@/features/admin/model/adminStore';
 import { useTicketsStore } from '@/features/tickets/model/ticketsStore';
+import { adminApi } from '@/shared/api/admin';
 import { Card, CardHeader, Badge } from '@/shared/ui';
 import { formatDateTime } from '@/shared/lib/utils';
 import Link from 'next/link';
 import { ROUTES } from '@/shared/config/routes';
+import type { RevenueData } from '@/shared/types';
+
+function currentMonthRange() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+  return { dateFrom: `${y}-${m}-01`, dateTo: `${y}-${m}-${lastDay}` };
+}
 
 export function AdminDashboardPage() {
   const { agents, orders, fetchAgents, fetchOrders } = useAdminStore();
   const { draws, fetchDraws } = useTicketsStore();
+  const [revenue, setRevenue] = useState<RevenueData | null>(null);
 
   useEffect(() => {
     fetchAgents();
     fetchOrders();
     fetchDraws();
+    const { dateFrom, dateTo } = currentMonthRange();
+    adminApi.revenue({ dateFrom, dateTo }).then(setRevenue).catch(() => null);
   }, [fetchAgents, fetchOrders, fetchDraws]);
 
   const stats = useMemo(() => {
@@ -40,19 +53,24 @@ export function AdminDashboardPage() {
       <div className="max-w-5xl mx-auto space-y-4 sm:space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Панель администратора</h1>
-          <p className="text-sm text-slate-500">Общая статистика по системе</p>
+          <p className="text-sm text-slate-500">Статистика за текущий месяц</p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Выручка</div>
+            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Выручка (месяц)</div>
             <div className="text-2xl font-bold text-emerald-600 mt-1">
-              {stats.totalRevenue.toLocaleString('ru-RU')} сом
+              {revenue
+                ? Number(revenue.paidOrdersAmount).toLocaleString('ru-RU')
+                : stats.totalRevenue.toLocaleString('ru-RU')}{' '}
+              сом
             </div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Оплачено заказов</div>
-            <div className="text-2xl font-bold text-brand-blue mt-1">{stats.paidOrders}</div>
+            <div className="text-2xl font-bold text-brand-blue mt-1">
+              {revenue ? revenue.paidOrdersCount : stats.paidOrders}
+            </div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Ожидают оплаты</div>
@@ -126,6 +144,16 @@ export function AdminDashboardPage() {
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-slate-900">{o.amount} сом</p>
                     <p className="text-xs text-slate-400">{o.tickets.length} билет(а)</p>
+                    {o.pdfFile && (
+                      <a
+                        href={o.pdfFile.startsWith('http') ? o.pdfFile : `https://kgloto.com${o.pdfFile}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-brand-blue hover:underline"
+                      >
+                        PDF
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}

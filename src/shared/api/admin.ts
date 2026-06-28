@@ -1,5 +1,5 @@
-import { getPagedAll, post, postFlat, patch, del } from './client';
-import type { AdminAgent, Order } from '@/shared/types';
+import { getPagedAll, getEnvelope, post, postFlat, patch, del } from './client';
+import type { AdminAgent, Order, RevenueData } from '@/shared/types';
 
 interface CreateAgentPayload {
   email: string;
@@ -45,4 +45,13 @@ export const adminApi = {
 
   deallocateTickets: (tickets: string[]) =>
     del<{ updated: number; isAgentPool: boolean }>('/admin/pool/allocate/', { tickets }),
+
+  revenue: (params?: { agentId?: number; dateFrom?: string; dateTo?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.agentId) q.set('agent_id', String(params.agentId));
+    if (params?.dateFrom) q.set('date_from', params.dateFrom);
+    if (params?.dateTo) q.set('date_to', params.dateTo);
+    const qs = q.toString() ? `?${q}` : '';
+    return getEnvelope<RevenueData>(`/admin/revenue/${qs}`);
+  },
 };

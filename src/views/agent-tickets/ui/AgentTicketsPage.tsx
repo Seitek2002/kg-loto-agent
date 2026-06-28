@@ -55,8 +55,7 @@ export function AgentTicketsPage() {
   const handleFormSubmit = useCallback(
     async (data: { clientFullName: string; clientPhone: string; clientBirthYear: number }) => {
       setFormLoading(true);
-      const redirectUrl = `${window.location.origin}/order/`;
-      const result = await createOrder({ ...data, tickets: selectedIds, redirectUrl });
+      const result = await createOrder({ ...data, tickets: selectedIds });
       setFormLoading(false);
       if (result) {
         setOrderClient({ clientFullName: data.clientFullName, clientPhone: data.clientPhone });

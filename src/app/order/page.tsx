@@ -11,7 +11,7 @@ function OrderRedirect() {
   useEffect(() => {
     const id = params.get('id') ?? params.get('orderId') ?? params.get('order_id');
     if (id) {
-      router.replace(`/order/${id}`);
+      router.replace(`/agent/order-status/${id}`);
     }
   }, [params, router]);
 

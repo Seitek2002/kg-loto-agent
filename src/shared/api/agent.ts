@@ -1,5 +1,5 @@
 import { getPagedAll, getEnvelope, post, postFlat } from './client';
-import type { Draw, Ticket, Order, CreateOrderPayload } from '@/shared/types';
+import type { Draw, Ticket, Order, CreateOrderPayload, RevenueData } from '@/shared/types';
 
 export const agentApi = {
   draws: (status?: string) => {
@@ -30,6 +30,14 @@ export const agentApi = {
 
   cancelOrder: (id: number) =>
     postFlat<{ data: Order; meta: object }>(`/agent/orders/${id}/cancel/`),
+
+  revenue: (params?: { dateFrom?: string; dateTo?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.dateFrom) q.set('date_from', params.dateFrom);
+    if (params?.dateTo) q.set('date_to', params.dateTo);
+    const qs = q.toString() ? `?${q}` : '';
+    return getEnvelope<RevenueData>(`/agent/revenue/${qs}`);
+  },
 };
 
 /** Public order status — no auth required, for buyer-facing status page */
