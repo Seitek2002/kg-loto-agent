@@ -36,6 +36,7 @@ export function PaymentLinkPanel({
   const [timeLeft, setTimeLeft] = useState(formatTimeLeft(createdOrder.reservedUntil));
   const [copied, setCopied] = useState(false);
   const [finalStatus, setFinalStatus] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Countdown timer
@@ -68,6 +69,23 @@ export function PaymentLinkPanel({
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
+  }, [createdOrder.orderId, onPaid, onExpired]);
+
+  const handleCheckStatus = useCallback(async () => {
+    setChecking(true);
+    try {
+      const order = await agentApi.order(createdOrder.orderId);
+      if (['paid', 'expired', 'failed', 'cancelled'].includes(order.status)) {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        setFinalStatus(order.status);
+        if (order.status === 'paid') onPaid(order);
+        else onExpired();
+      }
+    } catch {
+      // ignore
+    } finally {
+      setChecking(false);
+    }
   }, [createdOrder.orderId, onPaid, onExpired]);
 
   const handleCopy = useCallback(async () => {
@@ -120,14 +138,37 @@ export function PaymentLinkPanel({
         </div>
       )}
 
-      {/* Timer */}
+      {/* Timer + manual check */}
       {!isDone && !isExpired && (
-        <div className="flex items-center justify-center gap-2 text-amber-600 bg-amber-50 rounded-lg px-4 py-2.5">
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-sm font-semibold">Осталось: {timeLeft}</span>
-          <span className="text-xs text-amber-500 ml-1">(проверяем оплату автоматически)</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-center gap-2 text-amber-600 bg-amber-50 rounded-lg px-4 py-2.5">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm font-semibold">Осталось: {timeLeft}</span>
+          </div>
+          <button
+            onClick={handleCheckStatus}
+            disabled={checking}
+            className="w-full flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-60"
+          >
+            {checking ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Проверяем…
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Проверить статус оплаты
+              </>
+            )}
+          </button>
         </div>
       )}
 
