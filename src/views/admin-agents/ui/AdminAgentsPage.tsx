@@ -15,8 +15,8 @@ export function AdminAgentsPage() {
   }, [fetchAgents]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-5">
-      <div className="max-w-5xl mx-auto space-y-5">
+    <div className="flex-1 overflow-y-auto p-3 sm:p-5">
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900">Агенты</h1>

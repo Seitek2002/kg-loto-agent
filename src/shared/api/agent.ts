@@ -2,7 +2,10 @@ import { getPagedAll, getEnvelope, post, postFlat } from './client';
 import type { Draw, Ticket, Order, CreateOrderPayload } from '@/shared/types';
 
 export const agentApi = {
-  draws: () => getEnvelope<Draw[]>('/agent/draws/'),
+  draws: (status?: string) => {
+    const q = status ? `?status=${encodeURIComponent(status)}` : '';
+    return getPagedAll<Draw>(`/draws/${q}`);
+  },
 
   tickets: (drawCode?: string) => {
     const q = drawCode ? `?drawCode=${encodeURIComponent(drawCode)}` : '';

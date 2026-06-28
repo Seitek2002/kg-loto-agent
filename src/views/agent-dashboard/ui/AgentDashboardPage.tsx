@@ -29,8 +29,8 @@ export function AgentDashboardPage() {
     .slice(0, 5);
 
   return (
-    <div className="flex-1 overflow-y-auto p-5">
-      <div className="max-w-4xl mx-auto space-y-5">
+    <div className="flex-1 overflow-y-auto p-3 sm:p-5">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900">
             Добро пожаловать, {user?.fullName?.split(' ')[1] ?? user?.fullName}!

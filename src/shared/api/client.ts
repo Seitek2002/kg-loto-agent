@@ -1,4 +1,23 @@
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? '/api/v2';
+const TOKEN_KEY = 'kgloto_access';
+
+let _token: string | null = null;
+
+export function setToken(token: string | null) {
+  _token = token;
+  if (typeof window !== 'undefined') {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  }
+}
+
+export function getToken(): string | null {
+  if (_token) return _token;
+  if (typeof window !== 'undefined') {
+    _token = localStorage.getItem(TOKEN_KEY);
+  }
+  return _token;
+}
 
 type FetchOptions = {
   method?: string;
@@ -19,10 +38,15 @@ export class ApiError extends Error {
 async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
   const { method = 'GET', body, _retried } = opts;
 
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (body) headers['Content-Type'] = 'application/json';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch(`${BASE}${path}`, {
     method,
     credentials: 'include',
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
 
@@ -33,6 +57,8 @@ async function request<T>(path: string, opts: FetchOptions = {}): Promise<T> {
       credentials: 'include',
     });
     if (refreshRes.ok) {
+      const refreshData = await refreshRes.json().catch(() => ({}));
+      if (refreshData?.access) setToken(refreshData.access);
       return request<T>(path, { ...opts, _retried: true });
     }
     // refresh also failed — session is gone

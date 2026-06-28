@@ -35,7 +35,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar role="agent" />
-        <main className="flex-1 overflow-hidden flex flex-col">
+        <main className="flex-1 overflow-hidden flex flex-col pb-16 sm:pb-0">
           {children}
         </main>
       </div>

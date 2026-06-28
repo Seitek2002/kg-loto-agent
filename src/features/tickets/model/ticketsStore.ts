@@ -10,7 +10,7 @@ interface TicketsState {
   loading: boolean;
   error: string | null;
 
-  fetchDraws: () => Promise<void>;
+  fetchDraws: (status?: string) => Promise<void>;
   fetchTickets: (drawCode?: string) => Promise<void>;
   toggleSelect: (shortId: string) => void;
   clearSelection: () => void;
@@ -28,10 +28,10 @@ export const useTicketsStore = create<TicketsState>((set, get) => ({
   loading: false,
   error: null,
 
-  fetchDraws: async () => {
+  fetchDraws: async (status?: string) => {
     set({ loading: true, error: null });
     try {
-      const draws = await agentApi.draws();
+      const draws = await agentApi.draws(status);
       set({ draws, loading: false });
     } catch {
       set({ error: 'Не удалось загрузить тиражи', loading: false });

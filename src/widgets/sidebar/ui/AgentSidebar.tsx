@@ -56,7 +56,7 @@ const adminLinks = [
   },
   {
     href: ROUTES.ADMIN.TICKETS,
-    label: 'Пул билетов',
+    label: 'Пул',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
@@ -74,8 +74,35 @@ export function Sidebar({ role }: SidebarProps) {
   const links = role === 'agent' ? agentLinks : adminLinks;
 
   return (
-    <aside className="w-56 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
-      <nav className="flex-1 p-3 space-y-1">
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden sm:flex w-56 bg-white border-r border-slate-200 flex-col shrink-0">
+        <nav className="flex-1 p-3 space-y-1">
+          {links.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-brand-blue text-white shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                )}
+              >
+                <span className={isActive ? 'text-white' : 'text-slate-400'}>
+                  {link.icon}
+                </span>
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Mobile bottom navigation */}
+      <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 flex safe-area-pb">
         {links.map((link) => {
           const isActive = pathname === link.href;
           return (
@@ -83,20 +110,16 @@ export function Sidebar({ role }: SidebarProps) {
               key={link.href}
               href={link.href}
               className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-brand-blue text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                'flex-1 flex flex-col items-center justify-center gap-1 py-2 text-xs font-medium transition-colors',
+                isActive ? 'text-brand-blue' : 'text-slate-400'
               )}
             >
-              <span className={isActive ? 'text-white' : 'text-slate-400'}>
-                {link.icon}
-              </span>
-              {link.label}
+              <span>{link.icon}</span>
+              <span>{link.label}</span>
             </Link>
           );
         })}
       </nav>
-    </aside>
+    </>
   );
 }

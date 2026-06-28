@@ -35,11 +35,12 @@ export function AgentTicketsPage() {
     clientFullName: string;
     clientPhone: string;
   } | null>(null);
+  const [drawStatus, setDrawStatus] = useState<string>('active');
 
   useEffect(() => {
-    fetchDraws();
+    fetchDraws(drawStatus || undefined);
     fetchTickets();
-  }, [fetchDraws, fetchTickets]);
+  }, [fetchDraws, fetchTickets, drawStatus]);
 
   const selectedTickets = tickets.filter((t) => selectedIds.includes(t.shortId));
   const totalAmount = selectedTickets
@@ -82,17 +83,37 @@ export function AgentTicketsPage() {
     [toggleSelect]
   );
 
+  const DRAW_STATUS_FILTERS = [
+    { value: 'active', label: 'Активные' },
+    { value: 'completed', label: 'Завершённые' },
+    { value: '', label: 'Все' },
+  ];
+
   return (
-    <div className="flex-1 overflow-hidden flex flex-col p-5 gap-4">
+    <div className="flex-1 overflow-hidden flex flex-col p-3 sm:p-5 gap-3 sm:gap-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Билеты</h1>
-          <p className="text-sm text-slate-500">Выберите билеты для продажи клиенту</p>
+          <div className="flex items-center gap-2 mt-1">
+            {DRAW_STATUS_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setDrawStatus(f.value)}
+                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                  drawStatus === f.value
+                    ? 'bg-brand-blue text-white border-brand-blue'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
         {selectedIds.length > 0 && (
-          <div className="flex items-center gap-3">
-            <div className="text-sm text-slate-600">
+          <div className="flex items-center gap-2 bg-brand-blue/5 border border-brand-blue/20 rounded-xl px-3 py-2 sm:bg-transparent sm:border-0 sm:p-0 sm:gap-3">
+            <div className="text-sm text-slate-600 flex-1">
               Выбрано: <span className="font-semibold text-slate-900">{selectedIds.length}</span>
               {' · '}
               <span className="font-semibold text-brand-blue">{totalAmount} сом</span>

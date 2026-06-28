@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { AuthUser } from '@/shared/types';
 import { authApi } from '@/shared/api/auth';
-import { ApiError } from '@/shared/api/client';
+import { ApiError, setToken, getToken } from '@/shared/api/client';
 
 interface AuthState {
   user: AuthUser | null;
@@ -22,6 +22,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initAuth: async () => {
     try {
+      // getToken() loads from localStorage so the Bearer header is set before /me/
+      getToken();
       const user = await authApi.me();
       set({ user, initializing: false });
     } catch {
@@ -32,7 +34,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ error: null });
     try {
-      const { user } = await authApi.login(email, password);
+      const { access, user } = await authApi.login(email, password);
+      setToken(access);
       set({ user });
       return true;
     } catch (err) {
@@ -58,6 +61,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       // ignore
     } finally {
+      setToken(null);
       set({ user: null });
     }
   },

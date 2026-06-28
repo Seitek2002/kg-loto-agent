@@ -41,8 +41,8 @@ export function AgentOrdersPage() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-5">
-      <div className="max-w-3xl mx-auto space-y-5">
+    <div className="flex-1 overflow-y-auto p-3 sm:p-5">
+      <div className="max-w-3xl mx-auto space-y-4 sm:space-y-5">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Мои заказы</h1>
           <p className="text-sm text-slate-500">История оформленных заказов</p>
