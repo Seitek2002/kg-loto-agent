@@ -39,11 +39,6 @@ export function PaymentLinkPanel({
   const [checking, setChecking] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Open payment URL in new tab on mount
-  useEffect(() => {
-    window.open(createdOrder.payUrl, '_blank', 'noopener,noreferrer');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Countdown timer
   useEffect(() => {

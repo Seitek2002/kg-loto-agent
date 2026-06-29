@@ -9,81 +9,105 @@ interface TicketCardProps {
   onToggle?: (ticket: Ticket) => void;
 }
 
+const GRID_SIZE = 36;
+const ALL_NUMBERS = Array.from({ length: GRID_SIZE }, (_, i) => i + 1);
+
 export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
   const isReserved = ticket.reservedUntil !== null;
+  const price = ticket.tirageVariant ? ticket.tirageVariant.pricePerTicket : ticket.ticketPrice;
+  const hasGrids = ticket.tirageGrids && ticket.tirageGrids.length > 0;
+  const allSelected = ticket.tirageGrids?.flatMap((g) => g.numbers) ?? [];
 
   return (
     <div
       onClick={() => !isReserved && onToggle?.(ticket)}
       className={cn(
-        'relative rounded-xl border-2 p-3 transition-all duration-150 select-none text-sm',
+        'relative bg-white rounded-3xl p-4 shadow-sm border flex flex-col transition-colors duration-200 select-none',
         isReserved
           ? 'border-amber-200 bg-amber-50/60 opacity-60 cursor-not-allowed'
           : selected
-          ? 'border-brand-yellow bg-brand-yellow/10 shadow-md cursor-pointer'
-          : 'border-slate-200 bg-white hover:border-brand-yellow/60 hover:shadow-sm cursor-pointer'
+          ? 'border-[#4B4B4B] cursor-pointer'
+          : 'border-gray-100 hover:border-gray-300 cursor-pointer'
       )}
     >
-      {/* Checkmark */}
-      {selected && (
-        <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brand-yellow flex items-center justify-center shrink-0">
-          <svg className="w-3 h-3 text-brand-dark" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clipRule="evenodd"
-            />
-          </svg>
+      {/* Side cutouts */}
+      <div className="absolute -left-2 top-7.5 w-4 h-4 bg-slate-100 rounded-full border-r border-gray-100" />
+      <div className="absolute -right-2 top-7.5 w-4 h-4 bg-slate-100 rounded-full border-l border-gray-100" />
+
+      {/* Header */}
+      <div className="flex justify-between items-center border-b border-dashed border-gray-300 pb-3 mb-3">
+        <div className="min-w-0">
+          <div className="text-[11px] text-gray-400 font-medium truncate">{ticket.drawName}</div>
+          <div className="text-xs text-gray-500 font-mono truncate">
+            №{ticket.serial.split('-').slice(-2).join('-')}
+          </div>
         </div>
-      )}
-
-      {/* Draw name */}
-      <div className="text-xs text-slate-400 font-medium truncate pr-6">{ticket.drawName}</div>
-
-      {/* Serial (shortened) */}
-      <div className="text-xs text-slate-500 font-mono truncate mt-0.5">
-        {ticket.serial.split('-').slice(-2).join('-')}
+        <div className="shrink-0 ml-2 text-right">
+          <span className="font-bold text-[#4B4B4B] text-sm">{price} <span className="underline text-xs">с</span></span>
+        </div>
       </div>
 
-      {/* Grids */}
-      {ticket.tirageGrids && ticket.tirageGrids.length > 0 ? (
-        <div className="mt-2 space-y-1.5">
-          {ticket.tirageGrids.map((grid) => (
-            <div key={grid.position}>
-              {ticket.gridCount && ticket.gridCount > 1 && (
-                <span className="text-xs text-slate-400">Сетка {grid.position}:</span>
+      {/* Number grid */}
+      {hasGrids && ticket.tirageGrids!.length === 1 ? (
+        <div className="grid grid-cols-6 gap-1.5 mb-3">
+          {ALL_NUMBERS.map((num) => (
+            <div
+              key={num}
+              className={cn(
+                'flex items-center justify-center aspect-square rounded-md text-[11px] font-bold transition-colors',
+                allSelected.includes(num)
+                  ? 'bg-[#FF7600] text-white shadow-sm'
+                  : 'bg-[#F5F5F5] text-[#4B4B4B]'
               )}
-              <div className="flex flex-wrap gap-1 mt-0.5">
-                {grid.numbers.map((n) => (
-                  <span
-                    key={n}
+            >
+              {num}
+            </div>
+          ))}
+        </div>
+      ) : hasGrids ? (
+        <div className="space-y-2 mb-3">
+          {ticket.tirageGrids!.map((grid) => (
+            <div key={grid.position}>
+              <span className="text-[10px] text-gray-400 font-medium">Сетка {grid.position}</span>
+              <div className="grid grid-cols-6 gap-1 mt-0.5">
+                {ALL_NUMBERS.map((num) => (
+                  <div
+                    key={num}
                     className={cn(
-                      'inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold',
-                      selected
-                        ? 'bg-brand-yellow/30 text-brand-dark'
-                        : 'bg-slate-100 text-slate-700'
+                      'flex items-center justify-center aspect-square rounded text-[9px] font-bold transition-colors',
+                      grid.numbers.includes(num)
+                        ? 'bg-[#FF7600] text-white'
+                        : 'bg-[#F9F9F9] text-gray-300'
                     )}
                   >
-                    {n}
-                  </span>
+                    {num}
+                  </div>
                 ))}
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="mt-2 text-xs text-slate-400">Нет данных о комбинации</div>
+        <div className="py-4 text-center text-xs text-gray-400">Нет данных о комбинации</div>
       )}
 
       {/* Footer */}
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-xs font-semibold text-brand-blue">
-          {ticket.tirageVariant ? ticket.tirageVariant.pricePerTicket : ticket.ticketPrice} сом
-        </span>
-        {isReserved && (
-          <span className="text-xs text-amber-600 font-medium">Бронь</span>
-        )}
-      </div>
+      {isReserved ? (
+        <div className="w-full py-2.5 rounded-2xl text-xs font-bold text-center bg-amber-50 text-amber-600 border border-amber-200">
+          Забронирован
+        </div>
+      ) : (
+        <div
+          className={cn(
+            'w-full py-2.5 rounded-2xl text-xs font-bold text-center transition-colors',
+            selected
+              ? 'bg-[#4B4B4B] text-white'
+              : 'bg-[#FF7600] text-white'
+          )}
+        >
+          {selected ? 'Выбран' : `Выбрать • ${price} с`}
+        </div>
+      )}
     </div>
   );
 }
