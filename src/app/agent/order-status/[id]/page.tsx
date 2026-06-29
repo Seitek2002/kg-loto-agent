@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { use } from 'react';
+import Image from 'next/image';
 import { fetchOrderStatus } from '@/shared/api/agent';
 
 type OrderStatus = 'pending' | 'paid' | 'expired' | 'failed' | 'cancelled';
@@ -128,9 +129,7 @@ export default function OrderStatusPage({ params }: { params: Promise<{ id: stri
     <div className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-4">
       {/* Header */}
       <div className="flex items-center gap-2 mb-8">
-        <div className="w-8 h-8 rounded-full bg-brand-yellow flex items-center justify-center font-bold text-brand-dark text-xs">
-          KG
-        </div>
+        <Image src="/logo.png" alt="KGLOTO" width={32} height={32} />
         <span className="font-bold text-slate-800 tracking-wide">KGLOTO.Агент</span>
       </div>
 

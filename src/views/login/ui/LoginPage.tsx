@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { LoginForm } from '@/features/auth/ui/LoginForm';
 
 export function LoginPage() {
@@ -6,9 +7,7 @@ export function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-yellow shadow-lg mb-4">
-            <span className="text-2xl font-black text-brand-dark">KG</span>
-          </div>
+          <Image src="/logo.png" alt="KGLOTO" width={64} height={64} className="mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white">KGLOTO.Агент</h1>
           <p className="text-blue-300 text-sm mt-1">Система продажи лотерейных билетов</p>
         </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/model/authStore';
 import { Button } from '@/shared/ui';
@@ -17,9 +18,7 @@ export function Header() {
   return (
     <header className="h-14 bg-brand-blue border-b border-blue-900 flex items-center px-4 gap-4 flex-shrink-0">
       <div className="flex items-center gap-2 mr-auto">
-        <div className="w-7 h-7 rounded-full bg-brand-yellow flex items-center justify-center font-bold text-brand-dark text-xs">
-          KG
-        </div>
+        <Image src="/logo.png" alt="KGLOTO" width={32} height={32} className="object-contain" />
         <span className="font-bold text-white text-sm tracking-wide">KGLOTO.Агент</span>
       </div>
 
