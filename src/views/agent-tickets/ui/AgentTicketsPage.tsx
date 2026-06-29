@@ -35,12 +35,10 @@ export function AgentTicketsPage() {
     clientFullName: string;
     clientPhone: string;
   } | null>(null);
-  const [drawStatus, setDrawStatus] = useState<string>('printing');
-
   useEffect(() => {
-    fetchDraws(drawStatus || undefined);
+    fetchDraws();
     fetchTickets();
-  }, [fetchDraws, fetchTickets, drawStatus]);
+  }, [fetchDraws, fetchTickets]);
 
   const selectedTickets = tickets.filter((t) => selectedIds.includes(t.shortId));
   const totalAmount = selectedTickets
@@ -83,33 +81,12 @@ export function AgentTicketsPage() {
     [toggleSelect]
   );
 
-  const DRAW_STATUS_FILTERS = [
-    { value: 'printing', label: 'Активные' },
-    { value: 'finished', label: 'Завершённые' },
-    { value: '', label: 'Все' },
-  ];
-
   return (
     <div className="flex-1 overflow-hidden flex flex-col p-3 sm:p-5 gap-3 sm:gap-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Билеты</h1>
-          <div className="flex items-center gap-2 mt-1">
-            {DRAW_STATUS_FILTERS.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setDrawStatus(f.value)}
-                className={`rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
-                  drawStatus === f.value
-                    ? 'bg-brand-blue text-white border-brand-blue'
-                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
         </div>
         {selectedIds.length > 0 && (
           <div className="hidden sm:flex items-center gap-3">

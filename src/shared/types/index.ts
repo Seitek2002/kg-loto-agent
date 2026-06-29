@@ -15,24 +15,18 @@ export interface AuthUser {
 
 export type DrawStatus = string;
 
+/** Draw as returned from GET /agent/draws/ */
 export interface Draw {
   id: number;
-  code: string;
-  name: string;
-  description?: string;
+  drawCode: string;
+  drawName: string;
   status: DrawStatus;
   statusDisplay: string;
   pricePerTicket: string;
   prizePool: string;
-  isMonetary?: boolean;
-  drawNumber?: number | null;
-  salesStartAt: string | null;
-  salesDeadlineAt: string | null;
   drawAt: string | null;
-  purpose?: string;
-  purposeDisplay?: string;
-  gameType?: { id: number; name: string; code: string };
-  ticketPrices?: { gridCount: number; ticketPrice: number }[];
+  salesDeadlineAt: string | null;
+  availableCount: number;
 }
 
 // ── Ticket ──────────────────────────────────────────────────────────────────

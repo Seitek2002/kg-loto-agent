@@ -34,7 +34,7 @@ export function AgentDashboardPage() {
 
   const paid = orders.filter((o) => o.status === 'paid');
   const pending = orders.filter((o) => o.status === 'pending').length;
-  const totalDraws = draws.length;
+  const totalAvailable = draws.reduce((s, d) => s + d.availableCount, 0);
 
   const recentOrders = [...orders]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -71,8 +71,8 @@ export function AgentDashboardPage() {
             <div className="text-3xl font-bold text-amber-600 mt-1">{pending}</div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Тиражей</div>
-            <div className="text-3xl font-bold text-slate-700 mt-1">{totalDraws}</div>
+            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Доступно билетов</div>
+            <div className="text-3xl font-bold text-slate-700 mt-1">{totalAvailable}</div>
           </div>
         </div>
 

@@ -38,7 +38,7 @@ export function AdminDashboardPage() {
       paidOrders: paid.length,
       pendingOrders: orders.filter((o) => o.status === 'pending').length,
       activeAgents: agents.filter((a) => a.isActive).length,
-      totalDraws: draws.length,
+      totalDraws: draws.reduce((s, d) => s + d.availableCount, 0),
       soldTickets: paid.reduce((s, o) => s + o.tickets.length, 0),
     };
   }, [orders, agents, draws]);
@@ -81,7 +81,7 @@ export function AdminDashboardPage() {
             <div className="text-2xl font-bold text-slate-700 mt-1">{stats.activeAgents}</div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Тиражей</div>
+            <div className="text-xs text-slate-500 font-medium uppercase tracking-wide">Доступно билетов</div>
             <div className="text-2xl font-bold text-slate-700 mt-1">{stats.totalDraws}</div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4">

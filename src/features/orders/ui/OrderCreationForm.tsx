@@ -27,7 +27,7 @@ export function OrderCreationForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const total = selectedTickets
-    .reduce((s, t) => s + parseFloat(t.ticketPrice || t.price || '0'), 0)
+    .reduce((s, t) => s + (t.tirageVariant ? t.tirageVariant.pricePerTicket : parseFloat(t.ticketPrice || t.price || '0')), 0)
     .toFixed(0);
 
   const validate = () => {
@@ -60,16 +60,30 @@ export function OrderCreationForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Selected tickets summary */}
-      <div className="rounded-xl bg-slate-50 p-3 space-y-2">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Выбранные билеты</p>
-        <div className="flex flex-wrap gap-1.5">
+      <div className="rounded-xl bg-slate-50 p-3 space-y-3 max-h-60 overflow-y-auto">
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Выбранные билеты ({selectedTickets.length})</p>
+        <div className="space-y-2">
           {selectedTickets.map((t) => (
-            <span
-              key={t.shortId}
-              className="inline-flex items-center rounded-full bg-white border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700"
-            >
-              {t.serial.split('-').slice(-2).join('-')}
-            </span>
+            <div key={t.shortId} className="rounded-lg bg-white border border-slate-200 p-2.5">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-slate-700">
+                  {t.drawName} · {t.serial.split('-').slice(-2).join('-')}
+                </span>
+                <span className="text-xs font-semibold text-brand-blue">
+                  {t.tirageVariant ? t.tirageVariant.pricePerTicket : t.ticketPrice} сом
+                </span>
+              </div>
+              {t.tirageGrids && t.tirageGrids.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {t.tirageGrids.map((grid) => (
+                    <span key={grid.position} className="text-xs text-slate-500">
+                      {grid.numbers.join('-')}
+                      {grid.position < t.tirageGrids!.length ? ' · ' : ''}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </div>
         <div className="flex justify-between items-center pt-2 border-t border-slate-200">

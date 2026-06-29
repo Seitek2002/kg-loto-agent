@@ -19,13 +19,13 @@ export function AdminTicketsPage() {
   const drawStats = useMemo(() => {
     return draws.map((d) => {
       const drawOrders = orders.filter(
-        (o) => o.status === 'paid' && o.tickets.some((t) => t.drawName === d.name)
+        (o) => o.status === 'paid' && o.tickets.some((t) => t.drawName === d.drawName)
       );
       const soldCount = drawOrders.reduce((s, o) =>
-        s + o.tickets.filter((t) => t.drawName === d.name).length, 0
+        s + o.tickets.filter((t) => t.drawName === d.drawName).length, 0
       );
       const revenue = drawOrders.reduce((s, o) => {
-        const drawTickets = o.tickets.filter((t) => t.drawName === d.name);
+        const drawTickets = o.tickets.filter((t) => t.drawName === d.drawName);
         return s + drawTickets.reduce((ts, t) => ts + parseFloat(t.ticketPrice || '0'), 0);
       }, 0);
       return { draw: d, soldCount, revenue };
@@ -35,8 +35,8 @@ export function AdminTicketsPage() {
   const filteredOrders = useMemo(() => {
     if (!selectedDraw) return orders;
     return orders.filter((o) => o.tickets.some((t) => {
-      const draw = draws.find((d) => d.code === selectedDraw);
-      return draw && t.drawName === draw.name;
+      const draw = draws.find((d) => d.drawCode === selectedDraw);
+      return draw && t.drawName === draw.drawName;
     }));
   }, [orders, selectedDraw, draws]);
 
@@ -53,7 +53,7 @@ export function AdminTicketsPage() {
           {drawStats.map(({ draw, soldCount, revenue }) => (
             <Card key={draw.id}>
               <CardHeader
-                title={draw.name}
+                title={draw.drawName}
                 subtitle={draw.drawAt ? `Тираж: ${formatDateTime(draw.drawAt)}` : 'Дата не указана'}
               />
               <div className="space-y-2 mt-2">
@@ -74,8 +74,8 @@ export function AdminTicketsPage() {
                 <div className="h-px bg-slate-100 my-2" />
                 <div className="grid grid-cols-2 gap-2 text-center">
                   <div>
-                    <div className="text-lg font-bold text-emerald-600">{draw.statusDisplay}</div>
-                    <div className="text-xs text-slate-500">Статус</div>
+                    <div className="text-lg font-bold text-emerald-600">{draw.availableCount}</div>
+                    <div className="text-xs text-slate-500">Доступно</div>
                   </div>
                   <div>
                     <div className="text-lg font-bold text-slate-600">{soldCount}</div>
@@ -83,7 +83,7 @@ export function AdminTicketsPage() {
                   </div>
                 </div>
                 <div className="mt-2">
-                  <Badge variant={draw.status === 'printing' ? 'success' : draw.status === 'finished' ? 'neutral' : 'danger'}>
+                  <Badge variant={draw.status === 'printing' || draw.status === 'active' ? 'success' : draw.status === 'finished' || draw.status === 'completed' ? 'neutral' : 'danger'}>
                     {draw.statusDisplay}
                   </Badge>
                 </div>
@@ -105,12 +105,12 @@ export function AdminTicketsPage() {
           {draws.map((d) => (
             <button
               key={d.id}
-              onClick={() => setSelectedDraw(d.code)}
+              onClick={() => setSelectedDraw(d.drawCode)}
               className={`rounded-full px-3 py-1.5 text-xs font-medium border transition-colors ${
-                selectedDraw === d.code ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                selectedDraw === d.drawCode ? 'bg-brand-blue text-white border-brand-blue' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
               }`}
             >
-              {d.name}
+              {d.drawName}
             </button>
           ))}
         </div>
