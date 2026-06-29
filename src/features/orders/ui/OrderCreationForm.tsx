@@ -64,8 +64,8 @@ export function OrderCreationForm({
         <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Выбранные билеты ({selectedTickets.length})</p>
         <div className="space-y-2">
           {selectedTickets.map((t) => (
-            <div key={t.shortId} className="rounded-lg bg-white border border-slate-200 p-2.5">
-              <div className="flex items-center justify-between mb-1">
+            <div key={t.shortId} className="rounded-lg bg-white border border-slate-200 p-3">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-medium text-slate-700">
                   {t.drawName} · {t.serial.split('-').slice(-2).join('-')}
                 </span>
@@ -74,12 +74,23 @@ export function OrderCreationForm({
                 </span>
               </div>
               {t.tirageGrids && t.tirageGrids.length > 0 && (
-                <div className="flex flex-wrap gap-1">
+                <div className="space-y-1.5">
                   {t.tirageGrids.map((grid) => (
-                    <span key={grid.position} className="text-xs text-slate-500">
-                      {grid.numbers.join('-')}
-                      {grid.position < t.tirageGrids!.length ? ' · ' : ''}
-                    </span>
+                    <div key={grid.position} className="flex items-center gap-1.5">
+                      {t.tirageGrids!.length > 1 && (
+                        <span className="text-[10px] text-slate-400 w-3 shrink-0">{grid.position}</span>
+                      )}
+                      <div className="flex flex-wrap gap-1">
+                        {grid.numbers.map((num) => (
+                          <div
+                            key={num}
+                            className="flex items-center justify-center w-7 h-7 rounded-full bg-[#00C304] text-white text-xs font-black shadow-[inset_0px_2px_4px_0px_#009A03] shrink-0"
+                          >
+                            {num}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
