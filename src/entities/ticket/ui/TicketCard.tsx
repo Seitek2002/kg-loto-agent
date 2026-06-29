@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Ticket } from '@/shared/types';
 import { cn } from '@/shared/lib/utils';
 
@@ -36,10 +37,15 @@ export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
 
       {/* Header */}
       <div className="flex justify-between items-center border-b border-dashed border-gray-300 pb-3 mb-3">
-        <div className="min-w-0">
-          <div className="text-[11px] text-gray-400 font-medium truncate">{ticket.drawName}</div>
-          <div className="text-xs text-gray-500 font-mono truncate">
-            №{ticket.serial.split('-').slice(-2).join('-')}
+        <div className="min-w-0 flex items-center gap-2">
+          {ticket.logo && (
+            <Image src={ticket.logo} alt={ticket.drawName} width={28} height={28} className="rounded object-contain shrink-0" unoptimized />
+          )}
+          <div className="min-w-0">
+            <div className="text-[11px] text-gray-400 font-medium truncate">{ticket.drawName}</div>
+            <div className="text-xs text-gray-500 font-mono truncate">
+              №{ticket.serial.split('-').slice(-2).join('-')}
+            </div>
           </div>
         </div>
         <div className="shrink-0 ml-2 text-right">

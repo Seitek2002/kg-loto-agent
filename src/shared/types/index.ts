@@ -57,6 +57,7 @@ export interface Ticket {
   gridCount: number | null;
   tirageVariant: TirageVariant | null;
   tirageGrids: TirageGrid[] | null;
+  logo?: string | null;
   reservedUntil: string | null;
 }
 
