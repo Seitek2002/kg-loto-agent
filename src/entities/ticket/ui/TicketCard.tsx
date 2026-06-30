@@ -50,11 +50,14 @@ export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
         </div>
         <div className="shrink-0 ml-2 text-right">
           <span className="font-bold text-[#4B4B4B] text-sm">{price} <span className="underline text-xs">с</span></span>
+          {ticket.gridCount && ticket.gridCount > 1 && (
+            <div className="text-[10px] text-gray-400">{ticket.gridCount} сеток</div>
+          )}
         </div>
       </div>
 
       {/* Number grid */}
-      {hasGrids && ticket.tirageGrids!.length === 1 ? (
+      {hasGrids ? (
         <div className="grid grid-cols-6 gap-1.5 mb-3">
           {ALL_NUMBERS.map((num) => (
             <div
@@ -67,29 +70,6 @@ export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
               )}
             >
               {num}
-            </div>
-          ))}
-        </div>
-      ) : hasGrids ? (
-        <div className="space-y-2 mb-3">
-          {ticket.tirageGrids!.map((grid) => (
-            <div key={grid.position}>
-              <span className="text-[10px] text-gray-400 font-medium">Сетка {grid.position}</span>
-              <div className="grid grid-cols-6 gap-1 mt-0.5">
-                {ALL_NUMBERS.map((num) => (
-                  <div
-                    key={num}
-                    className={cn(
-                      'flex items-center justify-center aspect-square rounded text-[9px] font-bold transition-colors',
-                      grid.numbers.includes(num)
-                        ? 'bg-[#FF7600] text-white'
-                        : 'bg-[#F9F9F9] text-gray-300'
-                    )}
-                  >
-                    {num}
-                  </div>
-                ))}
-              </div>
             </div>
           ))}
         </div>
