@@ -107,14 +107,19 @@ export function TicketGrid({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {tickets.map((ticket) => (
-            <TicketCard
-              key={ticket.id}
-              ticket={ticket}
-              selected={selectedIds.includes(ticket.shortId)}
-              onToggle={onToggle}
-            />
-          ))}
+          {tickets.map((ticket) => {
+            const gridCount = ticket.tirageGrids?.length ?? ticket.gridCount ?? 1;
+            const span = gridCount >= 2 ? 'sm:col-span-2' : '';
+            return (
+              <div key={ticket.id} className={span}>
+                <TicketCard
+                  ticket={ticket}
+                  selected={selectedIds.includes(ticket.shortId)}
+                  onToggle={onToggle}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

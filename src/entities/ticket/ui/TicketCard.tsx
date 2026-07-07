@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Ticket } from '@/shared/types';
+import { Ticket, TirageGrid } from '@/shared/types';
 import { cn } from '@/shared/lib/utils';
 
 interface TicketCardProps {
@@ -10,20 +10,45 @@ interface TicketCardProps {
   onToggle?: (ticket: Ticket) => void;
 }
 
-const GRID_SIZE = 36;
+const GRID_SIZE = 42;
 const ALL_NUMBERS = Array.from({ length: GRID_SIZE }, (_, i) => i + 1);
+
+function NumberGrid({ grid }: { grid: TirageGrid }) {
+  const selectedSet = new Set(grid.numbers);
+  return (
+    <div className="grid grid-cols-6 gap-1">
+      {ALL_NUMBERS.map((num) => {
+        const isSelected = selectedSet.has(num);
+        return (
+          <div
+            key={num}
+            className={cn(
+              'flex items-center justify-center aspect-square rounded-md text-[11px] font-bold',
+              isSelected
+                ? 'bg-[#FF7600] text-white shadow-sm'
+                : 'bg-[#F5F5F5] text-[#4B4B4B]'
+            )}
+          >
+            {num}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
   const isReserved = ticket.reservedUntil !== null;
-  const price = ticket.tirageVariant ? ticket.tirageVariant.pricePerTicket : ticket.ticketPrice;
-  const hasGrids = ticket.tirageGrids && ticket.tirageGrids.length > 0;
-  const allSelected = ticket.tirageGrids?.flatMap((g) => g.numbers) ?? [];
+  const price = ticket.tirageVariant?.pricePerTicket ?? null;
+  const grids = ticket.tirageGrids
+    ? [...ticket.tirageGrids].sort((a, b) => a.position - b.position)
+    : [];
 
   return (
     <div
       onClick={() => !isReserved && onToggle?.(ticket)}
       className={cn(
-        'relative bg-white rounded-3xl p-4 shadow-sm border flex flex-col transition-colors duration-200 select-none',
+        'relative bg-white rounded-3xl py-4 px-2 shadow-sm border flex flex-col transition-colors duration-200 select-none',
         isReserved
           ? 'border-amber-200 bg-amber-50/60 opacity-60 cursor-not-allowed'
           : selected
@@ -49,27 +74,28 @@ export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
           </div>
         </div>
         <div className="shrink-0 ml-2 text-right">
-          <span className="font-bold text-[#4B4B4B] text-sm">{price} <span className="underline text-xs">с</span></span>
-          {ticket.gridCount && ticket.gridCount > 1 && (
-            <div className="text-[10px] text-gray-400">{ticket.gridCount} сеток</div>
+          {price !== null && (
+            <span className="font-bold text-[#4B4B4B] text-sm">
+              {price} <span className="underline text-xs">с</span>
+            </span>
+          )}
+          {ticket.tirageVariant && (
+            <div className="text-[10px] text-gray-400">{ticket.tirageVariant.name}</div>
           )}
         </div>
       </div>
 
-      {/* Number grid */}
-      {hasGrids ? (
-        <div className="grid grid-cols-6 gap-1.5 mb-3">
-          {ALL_NUMBERS.map((num) => (
-            <div
-              key={num}
-              className={cn(
-                'flex items-center justify-center aspect-square rounded-md text-[11px] font-bold transition-colors',
-                allSelected.includes(num)
-                  ? 'bg-[#FF7600] text-white shadow-sm'
-                  : 'bg-[#F5F5F5] text-[#4B4B4B]'
+      {/* Full number grids side by side, separated by dashed vertical divider */}
+      {grids.length > 0 ? (
+        <div className={cn('mb-3', grids.length > 1 ? 'flex gap-2' : '')}>
+          {grids.map((grid, idx) => (
+            <div key={grid.key} className="flex gap-2 min-w-0 flex-1">
+              {idx > 0 && (
+                <div className="border-l border-dashed border-gray-300 self-stretch" />
               )}
-            >
-              {num}
+              <div className="flex-1 min-w-0">
+                <NumberGrid grid={grid} />
+              </div>
             </div>
           ))}
         </div>
@@ -86,12 +112,10 @@ export function TicketCard({ ticket, selected, onToggle }: TicketCardProps) {
         <div
           className={cn(
             'w-full py-2.5 rounded-2xl text-xs font-bold text-center transition-colors',
-            selected
-              ? 'bg-[#4B4B4B] text-white'
-              : 'bg-[#FF7600] text-white'
+            selected ? 'bg-[#4B4B4B] text-white' : 'bg-[#FF7600] text-white'
           )}
         >
-          {selected ? 'Выбран' : `Выбрать • ${price} с`}
+          {selected ? 'Выбран' : price !== null ? `Выбрать • ${price} с` : 'Выбрать'}
         </div>
       )}
     </div>
