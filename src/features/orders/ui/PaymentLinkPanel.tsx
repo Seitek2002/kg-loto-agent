@@ -56,7 +56,7 @@ export function PaymentLinkPanel({
     pollingRef.current = setInterval(async () => {
       try {
         const order = await agentApi.order(createdOrder.orderId);
-        if (['paid', 'expired', 'failed', 'cancelled'].includes(order.status)) {
+        if (['paid', 'expired', 'failed', 'cancelled', 'refund_required'].includes(order.status)) {
           clearInterval(pollingRef.current!);
           setFinalStatus(order.status);
           if (order.status === 'paid') onPaid(order);
@@ -136,6 +136,12 @@ export function PaymentLinkPanel({
       {finalStatus === 'failed' && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm font-medium">
           Оплата отклонена. Билеты возвращены в пул.
+        </div>
+      )}
+
+      {finalStatus === 'refund_required' && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm font-medium">
+          Оплата получена, но билеты недоступны — оформляется возврат.
         </div>
       )}
 

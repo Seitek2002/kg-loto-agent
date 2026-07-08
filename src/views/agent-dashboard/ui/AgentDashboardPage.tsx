@@ -136,7 +136,7 @@ export function AgentDashboardPage() {
                       variant={
                         o.status === 'paid' ? 'success' :
                         o.status === 'pending' ? 'warning' :
-                        o.status === 'failed' || o.status === 'cancelled' ? 'danger' : 'neutral'
+                        o.status === 'failed' || o.status === 'cancelled' || o.status === 'refund_required' ? 'danger' : 'neutral'
                       }
                     >
                       {o.statusDisplay}

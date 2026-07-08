@@ -35,10 +35,17 @@ export function AgentTicketsPage() {
     clientFullName: string;
     clientPhone: string;
   } | null>(null);
+  const [ticketSoldNotice, setTicketSoldNotice] = useState<string | null>(null);
   useEffect(() => {
     fetchDraws();
     fetchTickets();
   }, [fetchDraws, fetchTickets]);
+
+  useEffect(() => {
+    if (!ticketSoldNotice) return;
+    const timer = setTimeout(() => setTicketSoldNotice(null), 6000);
+    return () => clearTimeout(timer);
+  }, [ticketSoldNotice]);
 
   const selectedTickets = tickets.filter((t) => selectedIds.includes(t.shortId));
   const totalAmount = selectedTickets
@@ -60,9 +67,18 @@ export function AgentTicketsPage() {
         removeTickets(selectedIds);
         clearSelection();
         setStep('payment');
+        return;
+      }
+
+      // Билет заняли/продали прямо перед бронью — штатный сценарий: закрываем
+      // форму, обновляем список билетов (выбор при этом сбрасывается) и показываем баннер
+      if (useOrdersStore.getState().ticketsUnavailable) {
+        setStep('grid');
+        setTicketSoldNotice('Билет только что продали, выберите другой');
+        fetchTickets(filterDrawCode ?? undefined);
       }
     },
-    [selectedIds, createOrder, removeTickets, clearSelection]
+    [selectedIds, createOrder, removeTickets, clearSelection, fetchTickets, filterDrawCode]
   );
 
   const handleClosePayment = () => {
@@ -104,6 +120,18 @@ export function AgentTicketsPage() {
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2 text-sm text-red-700 shrink-0">
           {error}
+        </div>
+      )}
+
+      {ticketSoldNotice && (
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-2 text-sm text-amber-700 shrink-0 flex items-center justify-between gap-3">
+          <span>{ticketSoldNotice}</span>
+          <button
+            onClick={() => setTicketSoldNotice(null)}
+            className="text-amber-500 hover:text-amber-700 shrink-0"
+          >
+            ✕
+          </button>
         </div>
       )}
 

@@ -8,6 +8,7 @@ const statusMap: Record<Order['status'], { label: string; variant: 'success' | '
   cancelled: { label: 'Отменён', variant: 'danger' },
   expired: { label: 'Истёк', variant: 'neutral' },
   failed: { label: 'Ошибка', variant: 'danger' },
+  refund_required: { label: 'Требуется возврат', variant: 'danger' },
 };
 
 interface OrderCardProps {

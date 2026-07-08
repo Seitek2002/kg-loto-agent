@@ -130,7 +130,7 @@ export function AdminDashboardPage() {
                         variant={
                           o.status === 'paid' ? 'success' :
                           o.status === 'pending' ? 'warning' :
-                          o.status === 'cancelled' || o.status === 'failed' ? 'danger' : 'neutral'
+                          o.status === 'cancelled' || o.status === 'failed' || o.status === 'refund_required' ? 'danger' : 'neutral'
                         }
                       >
                         {o.statusDisplay}

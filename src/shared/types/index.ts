@@ -73,7 +73,7 @@ export interface OrderTicket {
 
 // ── Order ───────────────────────────────────────────────────────────────────
 
-export type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired';
+export type OrderStatus = 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired' | 'refund_required';
 
 export interface Order {
   id: number;

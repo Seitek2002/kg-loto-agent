@@ -18,6 +18,8 @@ interface OrdersState {
   /** The most recently created order (shown in payment modal) */
   createdOrder: CreatedOrder | null;
   createError: string | null;
+  /** True when createError is specifically a "ticket already sold/reserved" 400 — caller should refresh the ticket list */
+  ticketsUnavailable: boolean;
 
   fetchOrders: (status?: string) => Promise<void>;
   createOrder: (payload: CreateOrderPayload) => Promise<CreatedOrder | null>;
@@ -31,6 +33,7 @@ export const useOrdersStore = create<OrdersState>((set) => ({
   error: null,
   createdOrder: null,
   createError: null,
+  ticketsUnavailable: false,
 
   fetchOrders: async (status) => {
     set({ loading: true, error: null });
@@ -43,7 +46,7 @@ export const useOrdersStore = create<OrdersState>((set) => ({
   },
 
   createOrder: async (payload) => {
-    set({ createError: null });
+    set({ createError: null, ticketsUnavailable: false });
     try {
       const created = await agentApi.createOrder(payload);
       set({ createdOrder: created });
@@ -54,13 +57,15 @@ export const useOrdersStore = create<OrdersState>((set) => ({
           data?: { tickets?: string[]; detail?: string | Record<string, string[]> };
         } | null;
         const data = payload?.data;
-        let msg = 'Не удалось создать заказ';
-        if (Array.isArray(data?.tickets)) {
-          msg = data!.tickets.join('\n');
+        // Бэк теперь сверяет билеты с LTT перед бронью, поэтому 400 с data.tickets —
+        // штатный сценарий "билет заняли до оплаты", а не редкий случай
+        if (Array.isArray(data?.tickets) && data.tickets.length > 0) {
+          set({ createError: 'Билет только что продали, выберите другой', ticketsUnavailable: true });
         } else if (typeof data?.detail === 'string') {
-          msg = data.detail;
+          set({ createError: data.detail });
+        } else {
+          set({ createError: 'Не удалось создать заказ' });
         }
-        set({ createError: msg });
       } else {
         set({ createError: 'Ошибка соединения с сервером' });
       }
@@ -81,5 +86,5 @@ export const useOrdersStore = create<OrdersState>((set) => ({
     }
   },
 
-  clearCreated: () => set({ createdOrder: null, createError: null }),
+  clearCreated: () => set({ createdOrder: null, createError: null, ticketsUnavailable: false }),
 }));

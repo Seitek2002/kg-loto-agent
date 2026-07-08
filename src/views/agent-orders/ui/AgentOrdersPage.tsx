@@ -13,6 +13,7 @@ const STATUS_FILTERS = [
   { value: 'expired', label: 'Истекшие' },
   { value: 'cancelled', label: 'Отменённые' },
   { value: 'failed', label: 'Ошибка' },
+  { value: 'refund_required', label: 'Возврат' },
 ] as const;
 
 const STATUS_BADGE: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'neutral' }> = {
@@ -21,6 +22,7 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'success' | 'warnin
   cancelled: { label: 'Отменён', variant: 'danger' },
   expired: { label: 'Истёк', variant: 'neutral' },
   failed: { label: 'Ошибка', variant: 'danger' },
+  refund_required: { label: 'Требуется возврат', variant: 'danger' },
 };
 
 export function AgentOrdersPage() {
