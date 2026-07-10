@@ -5,6 +5,7 @@ export const ROUTES = {
     DASHBOARD: '/agent',
     TICKETS: '/agent/tickets',
     ORDERS: '/agent/orders',
+    REFERRAL: '/agent/referral',
   },
   ADMIN: {
     DASHBOARD: '/admin',

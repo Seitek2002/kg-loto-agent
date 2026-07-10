@@ -1,5 +1,5 @@
 import { getPagedAll, getEnvelope, post, postFlat } from './client';
-import type { Draw, Ticket, Order, CreateOrderPayload, RevenueData } from '@/shared/types';
+import type { Draw, Ticket, Order, CreateOrderPayload, RevenueData, ReferralPurchase, ReferralEarnings } from '@/shared/types';
 
 export const agentApi = {
   draws: () => getEnvelope<Draw[]>('/agent/draws/'),
@@ -34,6 +34,23 @@ export const agentApi = {
     if (params?.dateTo) q.set('date_to', params.dateTo);
     const qs = q.toString() ? `?${q}` : '';
     return getEnvelope<RevenueData>(`/agent/revenue/${qs}`);
+  },
+
+  referralPurchases: (params?: { status?: string; dateFrom?: string; dateTo?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.dateFrom) q.set('date_from', params.dateFrom);
+    if (params?.dateTo) q.set('date_to', params.dateTo);
+    const qs = q.toString() ? `?${q}` : '';
+    return getPagedAll<ReferralPurchase>(`/agent/referral-purchases/${qs}`);
+  },
+
+  referralEarnings: (params?: { dateFrom?: string; dateTo?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.dateFrom) q.set('date_from', params.dateFrom);
+    if (params?.dateTo) q.set('date_to', params.dateTo);
+    const qs = q.toString() ? `?${q}` : '';
+    return getEnvelope<ReferralEarnings>(`/agent/referral-earnings/${qs}`);
   },
 };
 

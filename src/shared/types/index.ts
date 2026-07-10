@@ -9,6 +9,7 @@ export interface AuthUser {
   role: UserRole;
   phoneNumber?: string;
   commissionPercent?: string;
+  referralCode?: string | null;
 }
 
 // ── Draw ────────────────────────────────────────────────────────────────────
@@ -114,6 +115,40 @@ export interface RevenueData {
   totalRevenue: string;
   paidOrdersAmount: string;
   paidOrdersCount: number;
+  currency: string;
+}
+
+// ── Referral ─────────────────────────────────────────────────────────────────
+
+export interface ReferralPurchaseTicket {
+  shortId: string;
+  serial: string;
+  drawName: string;
+  ticketPrice: string;
+}
+
+export interface ReferralPurchase {
+  id: number;
+  orderId: string;
+  status: string;
+  statusDisplay: string;
+  paymentMethod: string;
+  guestPhone: string;
+  amount: string;
+  referralCodeUsed: string;
+  referralBonusAmount: string;
+  currency: string;
+  paidAt: string | null;
+  createdAt: string;
+  tickets: ReferralPurchaseTicket[];
+}
+
+export interface ReferralEarnings {
+  totalBonus: string;
+  paidPurchasesAmount: string;
+  paidPurchasesCount: number;
+  pendingPurchasesCount: number;
+  commissionPercent: string;
   currency: string;
 }
 

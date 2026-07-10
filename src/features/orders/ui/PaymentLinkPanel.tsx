@@ -97,7 +97,7 @@ export function PaymentLinkPanel({
 
   const phoneDigits = clientPhone.replace(/\D/g, '');
   const whatsappUrl = `https://api.whatsapp.com/send?phone=${phoneDigits}&text=${encodeURIComponent(
-    `Здравствуйте, ${clientFullName}!\n\nВаш заказ #${createdOrder.orderId} оформлен.\nСумма: ${createdOrder.amount} сом\n\nОплатите по ссылке:\n${createdOrder.payUrl}\n\nСсылка действительна 30 минут.`
+    `Здравствуйте, ${clientFullName}!\n\nВаш заказ #${createdOrder.orderId} оформлен.\nСумма: ${createdOrder.amount} сом\n\nОплатите по ссылке:\n${createdOrder.payUrl}\n\nСсылка действительна 2 часа.`
   )}`;
 
   const isExpired = new Date(createdOrder.reservedUntil).getTime() <= Date.now();
