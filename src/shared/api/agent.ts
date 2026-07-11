@@ -18,9 +18,13 @@ export const agentApi = {
       reservedUntil: string;
     }>('/agent/orders/', payload),
 
-  orders: (status?: string) => {
-    const q = status ? `?status=${status}` : '';
-    return getPagedAll<Order>(`/agent/orders/${q}`);
+  orders: (params?: { status?: string; dateFrom?: string; dateTo?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.dateFrom) q.set('date_from', params.dateFrom);
+    if (params?.dateTo) q.set('date_to', params.dateTo);
+    const qs = q.toString() ? `?${q}` : '';
+    return getPagedAll<Order>(`/agent/orders/${qs}`);
   },
 
   order: (id: number) => getEnvelope<Order>(`/agent/orders/${id}/`),

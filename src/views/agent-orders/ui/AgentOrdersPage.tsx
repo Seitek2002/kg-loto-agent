@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useOrdersStore } from '@/features/orders/model/ordersStore';
+import { agentApi } from '@/shared/api/agent';
 import { Badge } from '@/shared/ui';
 import { formatDateTime } from '@/shared/lib/utils';
-import type { Order } from '@/shared/types';
+import type { Order, RevenueData } from '@/shared/types';
 
 const STATUS_FILTERS = [
   { value: '', label: 'Все' },
@@ -28,6 +29,9 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'success' | 'warnin
 export function AgentOrdersPage() {
   const { orders, loading, error, fetchOrders, cancelOrder } = useOrdersStore();
   const [filter, setFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [revenue, setRevenue] = useState<RevenueData | null>(null);
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   const handleCopy = (url: string, id: number) => {
@@ -36,13 +40,24 @@ export function AgentOrdersPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  useEffect(() => {
-    fetchOrders(filter || undefined);
-  }, [fetchOrders, filter]);
+  const fetchData = useCallback(() => {
+    const params = {
+      status: filter || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+    };
+    fetchOrders(params);
+    agentApi.revenue({ dateFrom: dateFrom || undefined, dateTo: dateTo || undefined })
+      .then(setRevenue)
+      .catch(() => null);
+  }, [fetchOrders, filter, dateFrom, dateTo]);
 
-  const paid = orders.filter((o) => o.status === 'paid');
-  const revenue = paid.reduce((s, o) => s + parseFloat(o.amount), 0);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
   const pending = orders.filter((o) => o.status === 'pending').length;
+  const paidCount = orders.filter((o) => o.status === 'paid').length;
 
   const handleCancel = async (order: Order) => {
     if (!confirm(`Отменить заказ #${order.id}? Билеты вернутся в пул.`)) return;
@@ -57,15 +72,45 @@ export function AgentOrdersPage() {
           <p className="text-sm text-slate-500">История оформленных заказов</p>
         </div>
 
+        {/* Date filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-500 font-medium">Период:</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-blue focus:border-brand-blue"
+          />
+          <span className="text-xs text-slate-400">—</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-blue focus:border-brand-blue"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); }}
+              className="text-xs text-slate-400 hover:text-slate-600 underline"
+            >
+              Сбросить
+            </button>
+          )}
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
-            <div className="text-2xl font-bold text-emerald-600">{paid.length}</div>
+            <div className="text-2xl font-bold text-emerald-600">
+              {revenue ? revenue.paidOrdersCount : paidCount}
+            </div>
             <div className="text-xs text-slate-500 mt-0.5">Оплачено</div>
           </div>
           <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
             <div className="text-xl font-bold text-brand-blue">
-              {revenue.toLocaleString('ru-RU')} сом
+              {revenue
+                ? `${Number(revenue.totalRevenue).toLocaleString('ru-RU')} ${revenue.currency}`
+                : '—'}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">Выручка</div>
           </div>
@@ -75,7 +120,7 @@ export function AgentOrdersPage() {
           </div>
         </div>
 
-        {/* Filter */}
+        {/* Status filter */}
         <div className="flex gap-2 flex-wrap">
           {STATUS_FILTERS.map((f) => (
             <button

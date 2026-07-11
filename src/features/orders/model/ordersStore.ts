@@ -21,7 +21,7 @@ interface OrdersState {
   /** True when createError is specifically a "ticket already sold/reserved" 400 — caller should refresh the ticket list */
   ticketsUnavailable: boolean;
 
-  fetchOrders: (status?: string) => Promise<void>;
+  fetchOrders: (params?: { status?: string; dateFrom?: string; dateTo?: string }) => Promise<void>;
   createOrder: (payload: CreateOrderPayload) => Promise<CreatedOrder | null>;
   cancelOrder: (id: number) => Promise<void>;
   clearCreated: () => void;
@@ -35,10 +35,10 @@ export const useOrdersStore = create<OrdersState>((set) => ({
   createError: null,
   ticketsUnavailable: false,
 
-  fetchOrders: async (status) => {
+  fetchOrders: async (params) => {
     set({ loading: true, error: null });
     try {
-      const orders = await agentApi.orders(status);
+      const orders = await agentApi.orders(params);
       set({ orders, loading: false });
     } catch {
       set({ error: 'Не удалось загрузить заказы', loading: false });
