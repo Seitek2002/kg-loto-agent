@@ -1,14 +1,17 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/features/auth/model/authStore';
 import { Button } from '@/shared/ui';
 import { ROUTES } from '@/shared/config/routes';
+import { CheckCombinationModal } from '@/features/check-combination/ui/CheckCombinationModal';
 
 export function Header() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
+  const [isCheckOpen, setIsCheckOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -24,6 +27,14 @@ export function Header() {
 
       {user && (
         <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsCheckOpen(true)}
+            className="text-white hover:bg-white/10"
+          >
+            Проверить билет
+          </Button>
           <div className="text-right hidden sm:block">
             <p className="text-white text-sm font-medium leading-tight">{user.fullName}</p>
             <p className="text-blue-300 text-xs capitalize">
@@ -35,6 +46,8 @@ export function Header() {
           </Button>
         </div>
       )}
+
+      <CheckCombinationModal open={isCheckOpen} onClose={() => setIsCheckOpen(false)} />
     </header>
   );
 }

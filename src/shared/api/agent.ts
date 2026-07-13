@@ -1,5 +1,63 @@
-import { getPagedAll, getEnvelope, post, postFlat } from './client';
+import { getPagedAll, getEnvelope, post, postFlat, getToken, ApiError } from './client';
 import type { Draw, Ticket, Order, CreateOrderPayload, RevenueData, ReferralPurchase, ReferralEarnings } from '@/shared/types';
+
+export interface CombinationCheckResult {
+  isWinning: boolean;
+  combinationId: number;
+  message: string;
+  prizeType: string;
+  prizeAmount?: string;
+  prizeProduct?: string;
+}
+
+interface CombinationCheckRaw {
+  is_winning: boolean;
+  combination_id: number;
+  message: string;
+  prize_type: string;
+  prize_amount?: string;
+  prize_product?: string;
+}
+
+/**
+ * Проверяет, является ли код комбинации выигрышным — POST /api/v1/me/combination/check/.
+ * Живёт на v1 (не v2, как остальной agentApi) и принимает только
+ * application/x-www-form-urlencoded, поэтому не переиспользует общий request()
+ * из client.ts (тот всегда шлёт JSON на /api/v2).
+ */
+export async function checkCombination(code: string): Promise<CombinationCheckResult> {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch('/api/v1/me/combination/check/', {
+    method: 'POST',
+    credentials: 'include',
+    headers,
+    body: `code=${encodeURIComponent(code)}`,
+  });
+
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch {
+    json = {};
+  }
+
+  if (!res.ok) throw new ApiError(res.status, json);
+
+  const raw = (json as { data: CombinationCheckRaw }).data;
+  return {
+    isWinning: raw.is_winning,
+    combinationId: raw.combination_id,
+    message: raw.message,
+    prizeType: raw.prize_type,
+    prizeAmount: raw.prize_amount,
+    prizeProduct: raw.prize_product,
+  };
+}
 
 export const agentApi = {
   draws: () => getEnvelope<Draw[]>('/agent/draws/'),
