@@ -13,6 +13,16 @@ interface OrderCreationFormProps {
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
+const STORAGE_KEY = 'last_client';
+
+function loadSaved(): { fullName: string; phone: string; birthYear: string } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function OrderCreationForm({
   selectedTickets,
@@ -21,9 +31,9 @@ export function OrderCreationForm({
   loading,
   error,
 }: OrderCreationFormProps) {
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [birthYear, setBirthYear] = useState('');
+  const [fullName, setFullName] = useState(() => loadSaved()?.fullName ?? '');
+  const [phone, setPhone] = useState(() => loadSaved()?.phone ?? '');
+  const [birthYear, setBirthYear] = useState(() => loadSaved()?.birthYear ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const total = selectedTickets
@@ -50,6 +60,9 @@ export function OrderCreationForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ fullName: fullName.trim(), phone: phone.trim(), birthYear }));
+    } catch {}
     onSubmit({
       clientFullName: fullName.trim(),
       clientPhone: phone.trim(),
