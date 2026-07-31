@@ -54,7 +54,13 @@ export function AgentOrdersPage() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+    const interval = setInterval(() => {
+      agentApi.revenue({ dateFrom: dateFrom || undefined, dateTo: dateTo || undefined })
+        .then(setRevenue)
+        .catch(() => null);
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchData, dateFrom, dateTo]);
 
   const pending = orders.filter((o) => o.status === 'pending').length;
   const paidCount = orders.filter((o) => o.status === 'paid').length;
