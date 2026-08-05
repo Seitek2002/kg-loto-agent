@@ -21,7 +21,7 @@ interface OrdersState {
   /** True when createError is specifically a "ticket already sold/reserved" 400 — caller should refresh the ticket list */
   ticketsUnavailable: boolean;
 
-  fetchOrders: (params?: { status?: string; dateFrom?: string; dateTo?: string }) => Promise<void>;
+  fetchOrders: (params?: { status?: string; region?: string; dateFrom?: string; dateTo?: string }) => Promise<void>;
   createOrder: (payload: CreateOrderPayload) => Promise<CreatedOrder | null>;
   cancelOrder: (id: number) => Promise<void>;
   clearCreated: () => void;

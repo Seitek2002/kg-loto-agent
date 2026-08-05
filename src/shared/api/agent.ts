@@ -76,9 +76,10 @@ export const agentApi = {
       reservedUntil: string;
     }>('/agent/orders/', payload),
 
-  orders: (params?: { status?: string; dateFrom?: string; dateTo?: string }) => {
+  orders: (params?: { status?: string; region?: string; dateFrom?: string; dateTo?: string }) => {
     const q = new URLSearchParams();
     if (params?.status) q.set('status', params.status);
+    if (params?.region) q.set('region', params.region);
     if (params?.dateFrom) q.set('dateFrom', params.dateFrom);
     if (params?.dateTo) q.set('dateTo', params.dateTo);
     const qs = q.toString() ? `?${q}` : '';

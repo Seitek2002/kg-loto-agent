@@ -6,6 +6,7 @@ import { agentApi } from '@/shared/api/agent';
 import { Badge } from '@/shared/ui';
 import { formatDateTime } from '@/shared/lib/utils';
 import type { Order, RevenueData } from '@/shared/types';
+import { REGIONS } from '@/features/orders/ui/OrderCreationForm';
 
 const STATUS_FILTERS = [
   { value: '', label: 'Все' },
@@ -29,6 +30,7 @@ const STATUS_BADGE: Record<string, { label: string; variant: 'success' | 'warnin
 export function AgentOrdersPage() {
   const { orders, loading, error, fetchOrders, cancelOrder } = useOrdersStore();
   const [filter, setFilter] = useState('');
+  const [regionFilter, setRegionFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
@@ -43,6 +45,7 @@ export function AgentOrdersPage() {
   const fetchData = useCallback(() => {
     const params = {
       status: filter || undefined,
+      region: regionFilter || undefined,
       dateFrom: dateFrom || undefined,
       dateTo: dateTo || undefined,
     };
@@ -50,7 +53,7 @@ export function AgentOrdersPage() {
     agentApi.revenue({ dateFrom: dateFrom || undefined, dateTo: dateTo || undefined })
       .then(setRevenue)
       .catch(() => null);
-  }, [fetchOrders, filter, dateFrom, dateTo]);
+  }, [fetchOrders, filter, regionFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchData();
@@ -78,7 +81,7 @@ export function AgentOrdersPage() {
           <p className="text-sm text-slate-500">История оформленных заказов</p>
         </div>
 
-        {/* Date filters */}
+        {/* Date + region filters */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-slate-500 font-medium">Период:</span>
           <input
@@ -94,9 +97,19 @@ export function AgentOrdersPage() {
             onChange={(e) => setDateTo(e.target.value)}
             className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-blue focus:border-brand-blue"
           />
-          {(dateFrom || dateTo) && (
+          <select
+            value={regionFilter}
+            onChange={(e) => setRegionFilter(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-700 bg-white focus:outline-none focus:ring-1 focus:ring-brand-blue focus:border-brand-blue"
+          >
+            <option value="">Все регионы</option>
+            {REGIONS.map((r) => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
+          {(dateFrom || dateTo || regionFilter) && (
             <button
-              onClick={() => { setDateFrom(''); setDateTo(''); }}
+              onClick={() => { setDateFrom(''); setDateTo(''); setRegionFilter(''); }}
               className="text-xs text-slate-400 hover:text-slate-600 underline"
             >
               Сбросить
@@ -164,6 +177,9 @@ export function AgentOrdersPage() {
                       <div className="mt-1.5 space-y-0.5 text-sm text-slate-600">
                         <div><span className="font-medium">Клиент:</span> {order.clientFullName}</div>
                         <div><span className="font-medium">Телефон:</span> {order.clientPhone}</div>
+                        {order.regionDisplay && (
+                          <div><span className="font-medium">Регион:</span> {order.regionDisplay}</div>
+                        )}
                         {order.tickets.length > 0 && (
                           <div>
                             <span className="font-medium">Билеты ({order.tickets.length}):</span>{' '}

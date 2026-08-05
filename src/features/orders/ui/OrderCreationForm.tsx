@@ -6,7 +6,7 @@ import type { Ticket } from '@/shared/types';
 
 interface OrderCreationFormProps {
   selectedTickets: Ticket[];
-  onSubmit: (data: { clientFullName: string; clientPhone: string; clientBirthYear: number }) => void;
+  onSubmit: (data: { clientFullName: string; clientPhone: string; clientBirthYear: number; region?: string }) => void;
   onCancel: () => void;
   loading?: boolean;
   error?: string | null;
@@ -15,7 +15,18 @@ interface OrderCreationFormProps {
 const CURRENT_YEAR = new Date().getFullYear();
 const STORAGE_KEY = 'last_client';
 
-function loadSaved(): { fullName: string; phone: string; birthYear: string } | null {
+export const REGIONS = [
+  { value: 'bishkek', label: 'г. Бишкек' },
+  { value: 'batken', label: 'Баткенская область' },
+  { value: 'jalal_abad', label: 'Джалал-Абадская область' },
+  { value: 'issyk_kul', label: 'Иссык-Кульская область' },
+  { value: 'naryn', label: 'Нарынская область' },
+  { value: 'osh', label: 'Ошская область' },
+  { value: 'talas', label: 'Таласская область' },
+  { value: 'chuy', label: 'Чуйская область' },
+] as const;
+
+function loadSaved(): { fullName: string; phone: string; birthYear: string; region: string } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -34,6 +45,7 @@ export function OrderCreationForm({
   const [fullName, setFullName] = useState(() => loadSaved()?.fullName ?? '');
   const [phone, setPhone] = useState(() => loadSaved()?.phone ?? '');
   const [birthYear, setBirthYear] = useState(() => loadSaved()?.birthYear ?? '');
+  const [region, setRegion] = useState(() => loadSaved()?.region ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const total = selectedTickets
@@ -61,12 +73,13 @@ export function OrderCreationForm({
     e.preventDefault();
     if (!validate()) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ fullName: fullName.trim(), phone: phone.trim(), birthYear }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ fullName: fullName.trim(), phone: phone.trim(), birthYear, region }));
     } catch {}
     onSubmit({
       clientFullName: fullName.trim(),
       clientPhone: phone.trim(),
       clientBirthYear: parseInt(birthYear, 10),
+      region: region || undefined,
     });
   };
 
@@ -144,6 +157,20 @@ export function OrderCreationForm({
           max={CURRENT_YEAR - 18}
           error={errors.birthYear}
         />
+      </div>
+
+      <div className="space-y-1">
+        <label className="block text-xs font-medium text-slate-600">Регион</label>
+        <select
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-blue focus:border-brand-blue"
+        >
+          <option value="">— Не выбран —</option>
+          {REGIONS.map((r) => (
+            <option key={r.value} value={r.value}>{r.label}</option>
+          ))}
+        </select>
       </div>
 
       {error && (

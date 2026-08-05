@@ -98,6 +98,8 @@ export interface Order {
   agentNotifiedAt: string | null;
   createdAt: string;
   tickets: OrderTicket[];
+  region?: string;
+  regionDisplay?: string;
   /** only in admin detail */
   deliveryError?: string;
 }
@@ -106,6 +108,7 @@ export interface CreateOrderPayload {
   clientFullName: string;
   clientPhone: string;
   clientBirthYear: number;
+  region?: string;
   tickets: string[];
   note?: string;
   redirectUrl?: string;

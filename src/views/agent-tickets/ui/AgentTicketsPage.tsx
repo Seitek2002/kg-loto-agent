@@ -58,7 +58,7 @@ export function AgentTicketsPage() {
   };
 
   const handleFormSubmit = useCallback(
-    async (data: { clientFullName: string; clientPhone: string; clientBirthYear: number }) => {
+    async (data: { clientFullName: string; clientPhone: string; clientBirthYear: number; region?: string }) => {
       setFormLoading(true);
       const result = await createOrder({ ...data, tickets: selectedIds });
       setFormLoading(false);
